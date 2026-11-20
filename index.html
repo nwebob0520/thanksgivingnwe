@@ -834,7 +834,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- 1. FIREBASE SETUP (WITH YOUR CONFIG FOR GITHUB PAGES) ---
         let app = null;
@@ -1017,6 +1017,42 @@
             return collection(db, 'artifacts', appId, 'public', 'data', 'sessions', appState.sessionId, 'ballots');
         }
 
+        function getVoteStorageKey(sessionId) {
+            return `we_love_you_voted_${sessionId}`;
+        }
+
+        function hasLocalVoteLock(sessionId) {
+            if (appState.votedSessions.has(sessionId)) return true;
+            try {
+                return window.localStorage.getItem(getVoteStorageKey(sessionId)) === '1';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function setLocalVoteLock(sessionId) {
+            appState.votedSessions.add(sessionId);
+            try {
+                window.localStorage.setItem(getVoteStorageKey(sessionId), '1');
+            } catch (e) {}
+        }
+
+        async function checkCloudVoteLock() {
+            if (!useCloudSync || !appState.user) return false;
+            try {
+                const ballotRef = doc(getBallotsColRef(), appState.user.uid);
+                const existingSnap = await getDoc(ballotRef);
+                if (existingSnap.exists()) {
+                    setLocalVoteLock(appState.sessionId);
+                    appState.hasVotedLocally = true;
+                    return true;
+                }
+            } catch (err) {
+                console.warn("Could not verify cloud vote lock:", err);
+            }
+            return false;
+        }
+
         // --- 5. INITIALIZATION & REAL-TIME SUBSCRIPTIONS ---
         async function initApp() {
             document.getElementById('headerSessionCode').textContent = appState.sessionId;
@@ -1063,7 +1099,10 @@
             } else {
                 document.getElementById('modeBadge').textContent = 'Voter Phone View';
                 document.getElementById('modeBadge').className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
-                appState.hasVotedLocally = appState.votedSessions.has(appState.sessionId);
+                appState.hasVotedLocally = hasLocalVoteLock(appState.sessionId);
+                if (!appState.hasVotedLocally) {
+                    await checkCloudVoteLock();
+                }
             }
 
             subscribeToLiveSession();
@@ -1684,7 +1723,7 @@
             document.getElementById('joinRoomModal').classList.add('hidden');
         };
 
-        window.joinRoomByCode = function() {
+        window.joinRoomByCode = async function() {
             let code = document.getElementById('joinRoomCodeInput').value.trim().toUpperCase();
             if (!code) {
                 showToast("Please enter a Room Code.", "⚠️");
@@ -1698,7 +1737,10 @@
             appState.mode = 'voter';
             appState.sessionId = code;
             appState.selectedIds = [];
-            appState.hasVotedLocally = appState.votedSessions.has(code);
+            appState.hasVotedLocally = hasLocalVoteLock(code);
+            if (!appState.hasVotedLocally) {
+                await checkCloudVoteLock();
+            }
 
             document.getElementById('headerSessionCode').textContent = code;
             document.getElementById('modeBadge').textContent = 'Voter Phone View';
@@ -1829,19 +1871,36 @@
             if (appState.selectedIds.length !== 2) return;
             if (appState.selectedIds[0] === appState.selectedIds[1]) return;
 
+            if (hasLocalVoteLock(appState.sessionId)) {
+                appState.hasVotedLocally = true;
+                updateVoterScreenState();
+                showToast("You already voted in this session!", "🔒");
+                return;
+            }
+
             const btn = document.getElementById('phoneSubmitBtn');
             btn.disabled = true;
             document.getElementById('phoneSubmitBtnText').textContent = 'Sending Appreciation...';
 
             try {
                 if (useCloudSync && appState.user) {
-                    await addDoc(getBallotsColRef(), {
+                    // Use the anonymous Firebase Auth UID as the ballot ID so one device can never create duplicate ballots
+                    const ballotRef = doc(getBallotsColRef(), appState.user.uid);
+                    const existingSnap = await getDoc(ballotRef);
+                    if (existingSnap.exists()) {
+                        setLocalVoteLock(appState.sessionId);
+                        appState.hasVotedLocally = true;
+                        updateVoterScreenState();
+                        showToast("Your ballot was already counted!", "🔒");
+                        return;
+                    }
+                    await setDoc(ballotRef, {
                         choices: [appState.selectedIds[0], appState.selectedIds[1]],
                         createdAt: serverTimestamp()
                     });
                 }
 
-                appState.votedSessions.add(appState.sessionId);
+                setLocalVoteLock(appState.sessionId);
                 appState.hasVotedLocally = true;
                 AudioEngine.playVoteSuccess();
                 triggerAutumnConfetti();
