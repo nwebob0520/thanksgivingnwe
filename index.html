@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>We Love You! — Real-Time Thanksgiving Peer Appreciation</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <!-- QRCode.js CDN for Live Scannable QR Codes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Fredoka', 'cursive', 'sans-serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        autumn: {
+                            cream: '#FFFBF5',
+                            warm: '#FDF3E7',
+                            amber: '#F59E0B',
+                            gold: '#D97706',
+                            pumpkin: '#EA580C',
+                            cranberry: '#9F1239',
+                            burgundy: '#701A3C',
+                            espresso: '#2D1A12',
+                            forest: '#1E3A2F',
+                        }
+                    },
+                    animation: {
+                        'float-slow': 'float 6s ease-in-out infinite',
+                        'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'pop-in': 'popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                        'bump': 'bump 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-10px) rotate(4deg)' },
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { boxShadow: '0 0 0 0 rgba(234, 88, 12, 0.4)' },
+                            '50%': { boxShadow: '0 0 0 12px rgba(234, 88, 12, 0)' },
+                        },
+                        popIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.85) translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+                        },
+                        bump: {
+                            '0%': { transform: 'scale(1)' },
+                            '40%': { transform: 'scale(1.18)' },
+                            '100%': { transform: 'scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #FFFBF5;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(251, 191, 36, 0.16) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(234, 88, 12, 0.14) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(159, 18, 57, 0.10) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(217, 119, 6, 0.12) 0px, transparent 50%);
+            color: #2D1A12;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #FDF3E7; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb { background: #F59E0B; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #D97706; }
+
+        /* Teacher Selection Cards */
+        .teacher-card {
+            transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .teacher-card:hover:not(:disabled) {
+            transform: translateY(-3px);
+        }
+        .teacher-card.selected {
+            border-color: #EA580C;
+            background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+            box-shadow: 0 12px 24px -6px rgba(234, 88, 12, 0.28), 0 0 0 3px #EA580C;
+            transform: translateY(-3px) scale(1.02);
+        }
+        .teacher-card.dimmed {
+            opacity: 0.52;
+            filter: grayscale(20%);
+        }
+
+        /* Lucky Draw Tile Highlight */
+        .draw-tile {
+            transition: transform 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+        }
+        .draw-tile.active-spotlight {
+            background: linear-gradient(135deg, #F59E0B, #EA580C);
+            color: #FFFFFF;
+            transform: scale(1.08);
+            box-shadow: 0 10px 25px rgba(234, 88, 12, 0.55), 0 0 0 4px #FDE68A;
+            z-index: 10;
+            border-color: #FFFFFF;
+        }
+        .draw-tile.drawn-already {
+            opacity: 0.45;
+            background-color: #F3E8D8;
+            text-decoration: line-through;
+        }
+
+        /* Podium metallic gradients */
+        .podium-1 { background: linear-gradient(180deg, #FDE68A 0%, #F59E0B 45%, #B45309 100%); }
+        .podium-2 { background: linear-gradient(180deg, #F3F4F6 0%, #D1D5DB 45%, #6B7280 100%); }
+        .podium-3 { background: linear-gradient(180deg, #FED7AA 0%, #D97706 50%, #78350F 100%); }
+        .podium-45 { background: linear-gradient(180deg, #FFE4E6 0%, #E11D48 55%, #881337 100%); }
+
+        /* QR Code Container Styling */
+        #qrcodeContainer img, #qrcodeContainer canvas {
+            margin: 0 auto;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-amber-200 selection:text-autumn-espresso">
+
+    <!-- Decorative Floating Autumn Elements -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-35 select-none" aria-hidden="true">
+        <div class="absolute top-12 left-6 text-4xl animate-float-slow" style="animation-delay: 0s;">🍁</div>
+        <div class="absolute top-28 right-12 text-3xl animate-float-slow" style="animation-delay: 1.5s;">🍂</div>
+        <div class="absolute bottom-24 left-12 text-3xl animate-float-slow" style="animation-delay: 2.8s;">🥧</div>
+        <div class="absolute bottom-16 right-10 text-4xl animate-float-slow" style="animation-delay: 0.9s;">🧡</div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TOP HEADER BAR                                                            -->
+    <!-- ========================================================================= -->
+    <header class="relative z-20 bg-white/90 backdrop-blur-md border-b-2 border-amber-200/80 sticky top-0 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 via-orange-600 to-rose-700 flex items-center justify-center text-2xl shadow-md text-white shrink-0">
+                    🦃
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-display text-xl sm:text-2xl font-bold tracking-tight text-autumn-espresso leading-none">
+                            We Love You!
+                        </h1>
+                        <span id="modeBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                            Host Projector
+                        </span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-amber-900/75 font-medium">
+                        Session: <strong id="headerSessionCode" class="font-mono text-orange-700">Connecting...</strong>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Host Navigation Tabs (Visible only in Host Mode once event is launched) -->
+            <nav id="hostNavTabs" class="hidden flex-wrap items-center gap-1.5 sm:gap-2 bg-amber-100/80 p-1.5 rounded-2xl border border-amber-200">
+                <button onclick="switchHostScreen('dashboard')" id="tab-dashboard" class="nav-tab px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 bg-orange-600 text-white shadow-sm">
+                    <span>📱</span> <span>Live QR & Ballots</span>
+                </button>
+                <button onclick="switchHostScreen('luckydraw')" id="tab-luckydraw" class="nav-tab px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 text-amber-950 hover:bg-white/70">
+                    <span>🎰</span> <span>Lucky Draw</span>
+                </button>
+                <button onclick="switchHostScreen('finale')" id="tab-finale" class="nav-tab px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 text-rose-900 hover:bg-rose-100">
+                    <span>🏆</span> <span>Top 5 Reveal</span>
+                </button>
+            </nav>
+
+            <!-- Right Controls -->
+            <div class="flex items-center gap-2">
+                <!-- Connection Status Pill -->
+                <div id="syncStatusPill" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="syncStatusText">Live Sync</span>
+                </div>
+
+                <!-- Test Phone View Button (Host Mode) -->
+                <button onclick="openPhonePreviewModal()" id="testPhoneBtn" class="hidden px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs font-bold transition-colors flex items-center gap-1.5" title="Test how it looks on a teacher's phone">
+                    <span>📲</span> <span class="hidden md:inline">Test Phone View</span>
+                </button>
+
+                <!-- Join by Room Code Button -->
+                <button onclick="openJoinRoomModal()" id="joinRoomBtn" class="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold transition-colors flex items-center gap-1.5" title="Join an existing room as a voter">
+                    <span>🔑</span> <span class="hidden sm:inline">Join Room</span>
+                </button>
+
+                <!-- Sound Toggle -->
+                <button onclick="toggleSound()" id="soundToggleBtn" title="Toggle Sound Effects" class="p-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition-colors" aria-label="Toggle Sound">
+                    <span id="soundIcon">🔊</span>
+                </button>
+
+                <!-- Edit Roster Button (Host Mode) -->
+                <button onclick="confirmBackToSetup()" id="editRosterBtn" class="hidden px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 text-xs font-bold transition-colors" title="Edit Teacher Roster">
+                    ⚙️ Roster
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================================================= -->
+    <!-- MAIN CONTENT CONTAINER                                                    -->
+    <!-- ========================================================================= -->
+    <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+        <!-- Loading Spinner while Firebase Authenticates -->
+        <div id="loadingOverlay" class="flex flex-col items-center justify-center py-24 text-center space-y-4">
+            <div class="w-16 h-16 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-3xl text-white shadow-lg animate-bounce">
+                🦃
+            </div>
+            <h2 class="font-display text-2xl font-bold text-autumn-espresso">Setting the Thanksgiving Table...</h2>
+            <p class="text-sm text-amber-900/75 font-medium">Connecting to real-time live voting room</p>
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- HOST SCREEN 1: PRE-EVENT SETUP & ROSTER VERIFICATION                  -->
+        <!-- ===================================================================== -->
+        <section id="host-screen-setup" class="hidden max-w-4xl mx-auto animate-pop-in">
+            <div class="bg-white rounded-3xl shadow-xl border-2 border-amber-200/90 overflow-hidden">
+                <!-- Banner Header -->
+                <div class="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-700 px-6 py-7 sm:px-10 text-white relative overflow-hidden">
+                    <div class="relative z-10">
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="inline-block px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-xs font-bold uppercase tracking-wider">
+                                Step 1 · Host Setup
+                            </span>
+                            <span class="inline-block px-3 py-1 rounded-full bg-black/25 text-amber-200 text-xs font-mono font-bold">
+                                Room Code: <span id="setupSessionBadge">...</span>
+                            </span>
+                        </div>
+                        <h2 class="font-display text-2xl sm:text-4xl font-bold tracking-tight">
+                            Verify Attending Teachers Roster
+                        </h2>
+                        <p class="mt-2 text-amber-100 text-sm sm:text-base max-w-2xl">
+                            Confirm everyone who arrived at today’s celebration. Once launched, a <strong>live QR code</strong> will appear so teachers can scan and vote privately from their own phones—with zero spoilers on the projector!
+                        </p>
+                    </div>
+                    <div class="absolute -right-6 -bottom-8 text-8xl opacity-20 select-none pointer-events-none">🍂</div>
+                </div>
+
+                <div class="p-6 sm:p-8 space-y-6">
+                    <!-- Add Single Teacher & Bulk Import Controls -->
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-amber-50/70 p-4 sm:p-5 rounded-2xl border border-amber-200">
+                        <div class="md:col-span-7">
+                            <label for="newTeacherInput" class="block text-xs font-extrabold uppercase tracking-wider text-amber-900 mb-1.5">
+                                Add Attending Teacher
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="text" id="newTeacherInput" placeholder="e.g., Teacher Karen or Mr. Lee..." 
+                                    class="w-full px-4 py-3 rounded-xl border-2 border-amber-300 bg-white text-autumn-espresso font-semibold focus:outline-none focus:border-orange-500 transition-colors"
+                                    onkeydown="if(event.key === 'Enter') addSingleTeacher()">
+                                <button onclick="addSingleTeacher()" class="px-5 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 active:scale-95 text-white font-bold shadow-sm transition-all shrink-0">
+                                    + Add
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-5 flex flex-wrap sm:flex-nowrap gap-2 justify-end">
+                            <button onclick="toggleBulkModal()" class="w-full sm:w-auto px-4 py-3 rounded-xl bg-white hover:bg-amber-100 text-amber-950 font-bold border-2 border-amber-300 text-sm transition-colors flex items-center justify-center gap-1.5">
+                                <span>📋</span> Bulk Paste List
+                            </button>
+                            <button onclick="resetSampleRoster(true)" class="w-full sm:w-auto px-4 py-3 rounded-xl bg-white hover:bg-stone-100 text-stone-700 font-bold border-2 border-stone-200 text-sm transition-colors">
+                                ↺ Sample List
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Bulk Paste Area -->
+                    <div id="bulkPasteBox" class="hidden bg-orange-50/90 p-5 rounded-2xl border-2 border-dashed border-orange-300 space-y-3 animate-pop-in">
+                        <div class="flex items-center justify-between">
+                            <label for="bulkTextarea" class="text-sm font-bold text-orange-950">
+                                Paste teacher names (one per line or separated by commas):
+                            </label>
+                            <button onclick="toggleBulkModal()" class="text-xs font-bold text-orange-700 hover:underline">Close ✕</button>
+                        </div>
+                        <textarea id="bulkTextarea" rows="4" placeholder="Teacher Karen&#10;Bob&#10;Sarah&#10;Michael&#10;Jessica" class="w-full p-3.5 rounded-xl border-2 border-orange-300 bg-white text-sm font-medium focus:outline-none focus:border-orange-500"></textarea>
+                        <div class="flex flex-wrap gap-2 justify-end">
+                            <button onclick="applyBulkList('append')" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-bold">
+                                + Append to Current List
+                            </button>
+                            <button onclick="applyBulkList('replace')" class="px-4 py-2 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs sm:text-sm font-bold">
+                                Replace Entire List
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Roster Count Header & Quick Clear -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
+                        <div class="flex items-center gap-2.5">
+                            <h3 class="font-display text-xl font-bold text-autumn-espresso">
+                                Checked-In Teachers
+                            </h3>
+                            <span id="setupRosterCount" class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-sm font-extrabold">
+                                12 Teachers
+                            </span>
+                        </div>
+                        <button onclick="clearAllTeachers()" class="text-xs font-bold text-rose-700 hover:text-rose-900 hover:underline px-2 py-1">
+                            Clear All
+                        </button>
+                    </div>
+
+                    <!-- Interactive Roster Pills Grid -->
+                    <div id="setupRosterGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-80 overflow-y-auto p-1">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- Launch Action -->
+                    <div class="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-amber-100">
+                        <div class="text-xs sm:text-sm text-amber-900/80 font-medium space-y-0.5">
+                            <p>🔒 <strong>Spoiler-Free Guarantee:</strong> Individual vote counts stay 100% hidden until the Finale.</p>
+                            <p>📱 <strong>Phone Voting:</strong> Each teacher picks 2 different peers + optional appreciation badge.</p>
+                        </div>
+                        <button onclick="launchLiveEvent()" id="launchEventBtn" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-orange-600 to-rose-700 hover:from-orange-500 hover:to-rose-600 active:scale-95 text-white font-display text-lg sm:text-xl font-bold shadow-lg shadow-orange-600/30 transition-all flex items-center justify-center gap-2.5 animate-pulse-glow shrink-0">
+                            <span>📱</span>
+                            <span>Launch Live Event & Show QR Code</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- HOST SCREEN 2: SPOILER-FREE LIVE QR & BALLOT TRACKER DASHBOARD        -->
+        <!-- ===================================================================== -->
+        <section id="host-screen-dashboard" class="hidden space-y-6 animate-pop-in">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                
+                <!-- Left 5 Cols: Giant Scannable QR Code Card -->
+                <div class="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-amber-200 flex flex-col items-center justify-between text-center space-y-5">
+                    <div class="space-y-1.5">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-800 text-xs font-extrabold uppercase tracking-wider">
+                            <span>📸</span> Scan With Your Phone Camera
+                        </span>
+                        <h2 class="font-display text-2xl sm:text-3xl font-bold text-autumn-espresso">
+                            Vote for 2 Peers!
+                        </h2>
+                        <p class="text-xs sm:text-sm text-amber-900/75 font-medium">
+                            100% anonymous · Takes 15 seconds
+                        </p>
+                    </div>
+
+                    <!-- QR Code Box -->
+                    <div class="p-5 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl border-4 border-amber-400 shadow-inner">
+                        <div id="qrcodeContainer" class="bg-white p-3 rounded-2xl shadow-sm flex items-center justify-center min-w-[210px] min-h-[210px]"></div>
+                    </div>
+
+                    <!-- Preview / Localhost Warning Banner (Shown only when running in a private preview or local file) -->
+                    <div id="qrPreviewNotice" class="hidden w-full text-left bg-amber-50 border border-amber-300 rounded-2xl p-3.5 text-xs text-amber-950 space-y-2">
+                        <div class="font-extrabold text-orange-800 flex items-center gap-1.5">
+                            <span>⚠️</span> <span>Preview Mode Detected</span>
+                        </div>
+                        <p class="leading-relaxed text-amber-900/85">
+                            Phones cannot open a private preview link directly. To let teachers scan with their phones, host this single HTML file (e.g., on <strong>Netlify Drop</strong> or <strong>GitHub Pages</strong>) and paste its public URL below—or use <strong>📲 Test Phone View</strong> right now!
+                        </p>
+                        <div class="flex gap-1.5 pt-1">
+                            <input type="url" id="customBaseUrlInput" placeholder="https://your-site.netlify.app"
+                                class="w-full px-2.5 py-1.5 rounded-lg border border-amber-300 bg-white text-xs font-mono focus:outline-none focus:border-orange-500"
+                                onkeydown="if(event.key === 'Enter') applyCustomBaseUrl()">
+                            <button onclick="applyCustomBaseUrl()" class="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shrink-0">
+                                Update QR
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Shareable URL & Copy Button -->
+                    <div class="w-full space-y-2">
+                        <div class="flex items-center justify-between gap-2 bg-stone-100 px-3.5 py-2.5 rounded-xl border border-stone-200">
+                            <span id="shareableUrlText" class="text-xs font-mono text-stone-700 truncate select-all">Loading link...</span>
+                            <button onclick="copyVoteLink()" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shrink-0 transition-colors">
+                                Copy Link
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-stone-500 font-medium">
+                            Room Code: <strong id="dashboardSessionCode" class="font-mono text-autumn-espresso">...</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right 7 Cols: Spoiler-Free Live Participation Pulse & Host Controls -->
+                <div class="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-amber-200 flex flex-col justify-between space-y-6">
+                    <!-- Top Status -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-amber-100 pb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span id="votingStatusDot" class="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-ping"></span>
+                            <h3 id="votingStatusHeading" class="font-display text-xl sm:text-2xl font-bold text-autumn-espresso">
+                                Live Voting is OPEN!
+                            </h3>
+                        </div>
+                        <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-extrabold">
+                            🙈 Vote Counts Hidden (Anti-Spoiler)
+                        </span>
+                    </div>
+
+                    <!-- Giant Live Ballots Counter -->
+                    <div class="bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 rounded-3xl p-6 sm:p-8 border-2 border-amber-200 text-center space-y-3 relative overflow-hidden">
+                        <p class="text-xs sm:text-sm font-extrabold uppercase tracking-widest text-orange-800">
+                            Total Anonymous Ballots Cast
+                        </p>
+                        <div id="liveBallotCounterBig" class="font-display text-6xl sm:text-8xl font-bold text-autumn-espresso tracking-tight leading-none">
+                            0
+                        </div>
+                        <p id="liveParticipationSubtext" class="text-sm sm:text-base font-bold text-amber-900/80">
+                            Waiting for the first phone ballot to arrive... 🦃
+                        </p>
+
+                        <!-- Visual Participation Progress Bar (Ballots vs Attending Teachers) -->
+                        <div class="max-w-md mx-auto pt-2">
+                            <div class="flex justify-between text-xs font-bold text-amber-900/70 mb-1">
+                                <span>Room Participation</span>
+                                <span id="participationRatioText">0 / 12 Teachers</span>
+                            </div>
+                            <div class="w-full h-3.5 bg-white rounded-full overflow-hidden border border-amber-300 p-0.5">
+                                <div id="participationProgressBar" class="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Anonymous Activity Ticker (Shows ONLY generic pulse, NEVER who got voted for!) -->
+                    <div class="bg-stone-50 rounded-2xl p-4 border border-stone-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-extrabold uppercase tracking-wider text-stone-500">Live Ballot Feed (Anonymous)</span>
+                            <span class="text-[11px] font-bold text-emerald-700">🔒 Choices Encrypted Until Finale</span>
+                        </div>
+                        <div id="anonymousFeedList" class="space-y-1.5 max-h-28 overflow-y-auto text-xs font-semibold text-stone-700">
+                            <div class="text-stone-400 italic">No ballots received yet. Scan the QR code to cast the first vote!</div>
+                        </div>
+                    </div>
+
+                    <!-- Host Action Buttons -->
+                    <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-amber-100">
+                        <button onclick="switchHostScreen('luckydraw')" class="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 font-display text-base font-bold transition-all flex items-center justify-center gap-2">
+                            <span>🎰</span>
+                            <span>Play Lucky Draw While Waiting</span>
+                        </button>
+
+                        <button onclick="closeVotingAndGoToFinale()" class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-700 to-autumn-espresso hover:from-rose-600 hover:to-rose-950 text-white font-display text-base sm:text-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2">
+                            <span>🏆</span>
+                            <span>Close Voting & Go to Finale</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- HOST SCREEN 3: THANKSGIVING LUCKY DRAW                                -->
+        <!-- ===================================================================== -->
+        <section id="host-screen-luckydraw" class="hidden space-y-6 animate-pop-in">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left 8 Cols: Interactive Spotlight Draw Arena -->
+                <div class="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-amber-200 flex flex-col justify-between space-y-6">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-amber-100 pb-4">
+                        <div>
+                            <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-extrabold uppercase tracking-wider">
+                                🎁 Bonus Side Activity
+                            </span>
+                            <h2 class="font-display text-2xl sm:text-3xl font-bold text-autumn-espresso mt-1">
+                                Thanksgiving Harvest Lucky Draw
+                            </h2>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-bold text-amber-800 block">Eligible Pool</span>
+                            <span id="eligiblePoolCount" class="font-display text-2xl font-bold text-orange-600">12 Teachers</span>
+                        </div>
+                    </div>
+
+                    <!-- Spotlight Winner Banner -->
+                    <div id="luckyWinnerBanner" class="bg-gradient-to-r from-amber-100 via-orange-100 to-rose-100 border-2 border-amber-300 rounded-2xl p-5 text-center transition-all">
+                        <p id="luckyStatusSubtitle" class="text-xs sm:text-sm font-bold uppercase tracking-widest text-orange-800">
+                            Ready to spin the Thanksgiving spotlight!
+                        </p>
+                        <div id="luckySpotlightName" class="font-display text-3xl sm:text-5xl font-bold text-autumn-espresso my-2 tracking-tight">
+                            🦃 Who’s Next? 🦃
+                        </div>
+                        <p id="luckyWinnerMessage" class="text-xs sm:text-sm text-amber-900/80 font-medium">
+                            Click the big button below to randomly select an attending teacher!
+                        </p>
+                    </div>
+
+                    <!-- Visual Grid of All Participants -->
+                    <div id="luckyDrawGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                        <!-- Tiles rendered via JS -->
+                    </div>
+
+                    <!-- Spin Controls -->
+                    <div class="pt-4 border-t border-amber-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input type="checkbox" id="removeWinnerCheckbox" checked class="w-5 h-5 rounded text-orange-600 focus:ring-orange-500 border-amber-400">
+                            <span class="text-sm font-bold text-autumn-espresso">Remove winner from next draw</span>
+                        </label>
+
+                        <button onclick="startLuckyDraw()" id="spinDrawBtn" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-700 hover:from-amber-400 hover:to-rose-600 active:scale-95 text-white font-display text-xl font-bold shadow-lg shadow-orange-600/30 transition-all flex items-center justify-center gap-2.5">
+                            <span>🎰</span>
+                            <span>Draw a Lucky Winner!</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right 4 Cols: Lucky Draw Winners History -->
+                <div class="lg:col-span-4 bg-white rounded-3xl p-6 shadow-xl border-2 border-amber-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-amber-100 pb-4 mb-4">
+                            <h3 class="font-display text-xl font-bold text-autumn-espresso flex items-center gap-2">
+                                <span>🎉</span> Lucky Winners
+                            </h3>
+                            <button onclick="resetLuckyDrawPool()" class="text-xs font-bold text-orange-700 hover:text-orange-900 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-xl border border-orange-200 transition-colors">
+                                ↺ Reset Pool
+                            </button>
+                        </div>
+
+                        <div id="luckyWinnersHistoryList" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
+                            <div class="text-center py-12 text-amber-900/50 text-sm font-medium">
+                                No lucky winners drawn yet.<br>Spin the draw to award prizes! 🥧
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-amber-100 text-xs text-amber-900/70 bg-amber-50/70 p-3.5 rounded-xl">
+                        <strong>Note:</strong> Lucky Draw winners remain 100% eligible for the Top 5 Peer Appreciation Prizes!
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- HOST SCREEN 4: GRAND FINALE — TOP 5 WINNERS PODIUM REVEAL             -->
+        <!-- ===================================================================== -->
+        <section id="host-screen-finale" class="hidden space-y-6 animate-pop-in">
+            <div class="bg-gradient-to-br from-autumn-espresso via-rose-950 to-amber-950 text-white rounded-3xl p-6 sm:p-10 shadow-2xl border-2 border-amber-400/50 relative overflow-hidden">
+                <!-- Header -->
+                <div class="relative z-10 text-center max-w-2xl mx-auto space-y-2">
+                    <span class="inline-block px-3.5 py-1 rounded-full bg-amber-400/20 border border-amber-300/40 text-amber-300 text-xs font-extrabold uppercase tracking-widest">
+                        🏆 Thanksgiving Grand Finale 🏆
+                    </span>
+                    <h2 class="font-display text-3xl sm:text-5xl font-bold tracking-tight text-amber-100">
+                        Top 5 Most Appreciated Teachers!
+                    </h2>
+                    <p class="text-amber-200/80 text-sm sm:text-base">
+                        Out of <strong id="finaleTotalBallots" class="text-white">0</strong> anonymous phone ballots cast today, here are our 5 special prize winners!
+                    </p>
+                </div>
+
+                <!-- Reveal Controls -->
+                <div class="relative z-10 flex flex-wrap items-center justify-center gap-3 mt-6">
+                    <button onclick="revealNextRank()" id="revealNextBtn" class="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-autumn-espresso font-display text-lg font-bold shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                        <span>✨</span>
+                        <span id="revealNextBtnText">Reveal #5 Winner</span>
+                    </button>
+                    <button onclick="revealAllWinners()" id="revealAllBtn" class="px-5 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 text-amber-100 border border-amber-300/30 font-bold text-sm transition-all">
+                        Reveal All 5 at Once
+                    </button>
+                </div>
+
+                <!-- Top 5 Winners Stage Cards -->
+                <div id="top5StageGrid" class="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-8 items-end">
+                    <!-- Rendered dynamically via JS -->
+                </div>
+
+                <!-- Tie-breaker / Full Leaderboard Toggle -->
+                <div class="relative z-10 mt-8 pt-6 border-t border-white/15 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p id="tieNoteText" class="text-xs text-amber-200/80 italic">
+                        * Rankings are ordered by total peer appreciation votes received.
+                    </p>
+                    <button onclick="toggleFullStandings()" id="toggleFullStandingsBtn" class="hidden px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-amber-200 border border-white/20 transition-colors">
+                        📊 Show Full Standings
+                    </button>
+                </div>
+
+                <!-- Full Standings Drawer -->
+                <div id="fullStandingsBox" class="hidden relative z-10 mt-5 bg-black/30 rounded-2xl p-5 border border-white/10">
+                    <h4 class="font-display text-lg font-bold text-amber-300 mb-3">Complete Gratitude Tally</h4>
+                    <div id="fullStandingsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- VOTER PHONE VIEW (MOBILE-FIRST ANONYMOUS BALLOT)                      -->
+        <!-- ===================================================================== -->
+        <section id="voter-phone-view" class="hidden max-w-lg mx-auto pb-32 animate-pop-in">
+            <!-- State A: Waiting for Host to Launch -->
+            <div id="voter-state-waiting" class="hidden bg-white rounded-3xl p-8 text-center shadow-xl border-2 border-amber-200 space-y-4">
+                <div class="text-5xl animate-bounce">⏳</div>
+                <h2 class="font-display text-2xl font-bold text-autumn-espresso">Almost Ready!</h2>
+                <p class="text-sm text-amber-900/80 font-medium">
+                    The host is still verifying the attending teacher roster. This screen will unlock automatically the moment voting starts!
+                </p>
+            </div>
+
+            <!-- State B: Voting Closed by Host -->
+            <div id="voter-state-closed" class="hidden bg-white rounded-3xl p-8 text-center shadow-xl border-2 border-amber-200 space-y-4">
+                <div class="text-5xl">🏆</div>
+                <h2 class="font-display text-2xl font-bold text-autumn-espresso">Voting Has Closed!</h2>
+                <p class="text-sm text-amber-900/80 font-medium">
+                    Look up at the main screen—the Top 5 Peer Appreciation Winners are about to be revealed!
+                </p>
+            </div>
+
+            <!-- State C: Already Voted From This Phone -->
+            <div id="voter-state-submitted" class="hidden bg-white rounded-3xl p-7 sm:p-9 text-center shadow-xl border-4 border-amber-400 space-y-5">
+                <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-4xl shadow-lg">
+                    🧡
+                </div>
+                <div class="space-y-2">
+                    <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold uppercase tracking-wider">
+                        100% Anonymous Ballot Locked
+                    </span>
+                    <h2 class="font-display text-2xl sm:text-3xl font-bold text-autumn-espresso">
+                        Thank You! Your anonymous votes are locked in 🍂
+                    </h2>
+                    <p class="text-sm text-amber-900/80 font-medium leading-relaxed">
+                        Your appreciation has been secretly added to the Thanksgiving tally. Watch the big screen for the Lucky Draw and Top 5 Finale Reveal!
+                    </p>
+                </div>
+                <div class="bg-amber-50 rounded-2xl p-4 border border-amber-200 text-xs text-amber-900/75 font-semibold">
+                    🔒 Privacy Guarantee: No name, email, or phone ID was attached to your vote.
+                </div>
+            </div>
+
+            <!-- State D: Active Mobile Ballot -->
+            <div id="voter-state-ballot" class="hidden space-y-4">
+                <!-- Mobile Intro Card -->
+                <div class="bg-white rounded-3xl p-5 shadow-md border-2 border-amber-200 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[11px] font-extrabold uppercase tracking-wide border border-emerald-300">
+                            🔒 100% Anonymous
+                        </span>
+                        <span class="text-xs font-bold text-orange-700">Pick 2 Different Peers</span>
+                    </div>
+                    <h2 class="font-display text-2xl font-bold text-autumn-espresso leading-snug">
+                        Who are you thankful for today? 🧡
+                    </h2>
+                    <p class="text-xs text-amber-900/75 font-medium">
+                        Tap <strong>2 different teachers</strong> below, optionally add a quick appreciation badge, and send!
+                    </p>
+
+                    <!-- Quick Search Filter -->
+                    <div class="pt-1 relative">
+                        <input type="text" id="phoneSearchInput" oninput="renderPhoneTeacherList()" placeholder="🔍 Search teacher name..."
+                            class="w-full pl-3.5 pr-8 py-2.5 rounded-xl border-2 border-amber-200 bg-amber-50/50 text-sm font-semibold focus:outline-none focus:border-orange-500">
+                        <button onclick="document.getElementById('phoneSearchInput').value=''; renderPhoneTeacherList();" class="absolute right-3 top-3.5 text-amber-800/50 hover:text-amber-900 text-xs font-bold">✕</button>
+                    </div>
+                </div>
+
+                <!-- Optional Anonymous Thanksgiving Sticker / Badge Picker -->
+                <div class="bg-white rounded-3xl p-4 shadow-sm border border-amber-200 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-amber-900">
+                            Optional Appreciation Vibe Badge
+                        </span>
+                        <span class="text-[11px] text-stone-400 font-semibold">Anonymous</span>
+                    </div>
+                    <div id="stickerPickerRow" class="flex flex-wrap gap-1.5">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+
+                <!-- Teacher Cards Grid (Mobile Friendly 2-Col) -->
+                <div id="phoneTeacherGrid" class="grid grid-cols-2 gap-3">
+                    <!-- Rendered via JS -->
+                </div>
+
+                <!-- Sticky Bottom Submit Bar -->
+                <div class="fixed bottom-3 left-0 right-0 z-30 px-3">
+                    <div class="max-w-lg mx-auto bg-autumn-espresso/95 backdrop-blur-md text-white rounded-3xl p-3.5 shadow-2xl border-2 border-amber-400/50 space-y-2.5">
+                        <div class="flex items-center justify-center gap-2 text-xs font-bold">
+                            <span id="phoneSlot1" class="px-2.5 py-1 rounded-lg bg-white/10 text-amber-200 truncate max-w-[44%]">1️⃣ Pick 1st</span>
+                            <span class="text-amber-400">+</span>
+                            <span id="phoneSlot2" class="px-2.5 py-1 rounded-lg bg-white/10 text-amber-200 truncate max-w-[44%]">2️⃣ Pick 2nd</span>
+                        </div>
+                        <button onclick="submitPhoneVote()" id="phoneSubmitBtn" disabled
+                            class="w-full py-3.5 rounded-2xl font-display text-lg font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-45 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 text-white shadow-lg active:scale-95">
+                            <span>💌</span>
+                            <span id="phoneSubmitBtnText">Select 2 Teachers</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- TEST PHONE VIEW MODAL (BUILT-IN LIVE PHONE VOTER SIMULATOR & KIOSK)       -->
+    <!-- ========================================================================= -->
+    <div id="phonePreviewModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-autumn-cream rounded-[2.25rem] max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border-4 border-autumn-espresso overflow-hidden animate-pop-in">
+            <!-- Phone Mockup Header -->
+            <div class="bg-autumn-espresso text-white px-5 py-3.5 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">📱</span>
+                    <div>
+                        <h3 class="font-display text-sm font-bold leading-none">Phone Voter / Kiosk Mode</h3>
+                        <span class="text-[11px] text-amber-300">Live connected to <span id="modalSessionId"></span></span>
+                    </div>
+                </div>
+                <button onclick="closePhonePreviewModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-sm font-bold">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Interactive In-App Phone Voter Body -->
+            <div id="previewPhoneBody" class="flex-1 overflow-y-auto p-4 space-y-3.5">
+                <!-- Rendered dynamically via JS -->
+            </div>
+
+            <!-- Sticky Modal Footer for Selection & Submit -->
+            <div id="previewPhoneFooter" class="bg-autumn-espresso text-white p-3.5 border-t border-amber-400/30 space-y-2 shrink-0">
+                <div class="flex items-center justify-center gap-2 text-xs font-bold">
+                    <span id="previewSlot1" class="px-2.5 py-1 rounded-lg bg-white/10 text-amber-200 truncate max-w-[44%]">1️⃣ Pick 1st</span>
+                    <span class="text-amber-400">+</span>
+                    <span id="previewSlot2" class="px-2.5 py-1 rounded-lg bg-white/10 text-amber-200 truncate max-w-[44%]">2️⃣ Pick 2nd</span>
+                </div>
+                <button onclick="submitPreviewVote()" id="previewSubmitBtn" disabled
+                    class="w-full py-3 rounded-2xl font-display text-base font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-45 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 text-white shadow-lg active:scale-95">
+                    <span>💌</span>
+                    <span id="previewSubmitBtnText">Select 2 Teachers</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JOIN ROOM BY CODE MODAL -->
+    <div id="joinRoomModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-amber-300 animate-pop-in space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-display text-xl font-bold text-autumn-espresso">Join Voting Room</h3>
+                <button onclick="closeJoinRoomModal()" class="text-stone-400 hover:text-stone-700 font-bold">✕</button>
+            </div>
+            <p class="text-xs sm:text-sm text-stone-600 font-medium">
+                Enter the Room Code shown on the host screen (e.g., <strong class="font-mono text-orange-700">THANKS-8492</strong> or just <strong class="font-mono text-orange-700">8492</strong>).
+            </p>
+            <input type="text" id="joinRoomCodeInput" placeholder="THANKS-8492"
+                class="w-full px-4 py-3 rounded-xl border-2 border-amber-300 bg-amber-50/40 font-mono font-bold text-center text-lg uppercase focus:outline-none focus:border-orange-500"
+                onkeydown="if(event.key === 'Enter') joinRoomByCode()">
+            <div class="flex justify-end gap-2 pt-1">
+                <button onclick="closeJoinRoomModal()" class="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-bold">
+                    Cancel
+                </button>
+                <button onclick="joinRoomByCode()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm">
+                    Join & Vote 💌
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM CONFIRMATION DIALOG -->
+    <div id="customDialogModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-amber-300 animate-pop-in space-y-4">
+            <h3 id="dialogTitle" class="font-display text-xl font-bold text-autumn-espresso">Confirm Action</h3>
+            <p id="dialogMessage" class="text-sm text-stone-600 font-medium"></p>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeCustomDialog()" class="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-bold">
+                    Cancel
+                </button>
+                <button id="dialogConfirmBtn" class="px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold shadow-sm">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastBanner" class="fixed top-20 right-4 z-50 hidden bg-autumn-espresso text-white px-4 py-3 rounded-2xl shadow-xl border border-amber-400/50 text-sm font-bold flex items-center gap-2 animate-pop-in">
+        <span id="toastIcon">🍂</span>
+        <span id="toastText">Notification</span>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- FIREBASE REAL-TIME SYNC & APPLICATION LOGIC                               -->
+    <!-- ========================================================================= -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 1. FIREBASE SETUP (WITH GRACEFUL LOCAL FALLBACK) ---
+        let app = null;
+        let auth = null;
+        let db = null;
+        let useCloudSync = false;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'thanksgiving-we-love-you';
+
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                useCloudSync = true;
+            }
+        } catch (err) {
+            console.warn("Firebase config unavailable, running in local mode:", err);
+            useCloudSync = false;
+        }
+
+        // --- 2. CONSTANTS & STATE ---
+        const DEFAULT_TEACHERS = [
+            "Teacher Karen", "Bob", "Sarah", "Michael", 
+            "Jessica", "David", "Emily", "Kevin", 
+            "Rachel", "Daniel", "Olivia", "Mr. Thompson"
+        ];
+        const AVATAR_EMOJIS = ["🦉", "🦊", "🐻", "🦔", "🐿️", "🦌", "🦃", "🌻", "🍁", "🍎", "🥧", "🧣", "☕", "🌟", "🐝", "🦋"];
+        const VIBE_STICKERS = [
+            "Always Helpful 🌟",
+            "Best Energy 🔥",
+            "Super Kind 💛",
+            "Team Lifesaver 🦸",
+            "Pure Joy 🌻"
+        ];
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramSessionId = urlParams.get('session');
+
+        const appState = {
+            mode: paramSessionId ? 'voter' : 'host', // 'host' or 'voter'
+            sessionId: paramSessionId || generateSessionCode(),
+            user: null,
+            sessionData: {
+                status: 'setup', // 'setup' | 'voting' | 'closed'
+                teachers: [], // { id, name, avatar }
+            },
+            ballots: [], // Array of { choices: [id1, id2], sticker: string, createdAt }
+            // Host local state
+            draftTeachers: [],
+            drawnWinnerIds: [],
+            luckyHistory: [],
+            isSpinning: false,
+            revealedRankStep: 0,
+            soundEnabled: true,
+            lastBallotCount: 0,
+            customBaseUrl: '',
+            currentHostScreen: 'setup',
+            // Built-in phone preview/kiosk modal state
+            previewSelectedIds: [],
+            previewSticker: VIBE_STICKERS[0],
+            previewVoted: false,
+            // Voter phone local state
+            selectedIds: [],
+            selectedSticker: VIBE_STICKERS[0],
+            hasVotedLocally: false
+        };
+
+        let unsubscribeSession = null;
+        let unsubscribeBallots = null;
+
+        // --- 3. WEB AUDIO SYNTHESIZER (NO EXTERNAL AUDIO FILES) ---
+        const AudioEngine = {
+            ctx: null,
+            getCtx() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                return this.ctx;
+            },
+            playTone(freq, duration = 0.12, type = 'sine', volume = 0.12, delay = 0) {
+                if (!appState.soundEnabled) return;
+                try {
+                    const ctx = this.getCtx();
+                    if (!ctx) return;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+                    gain.gain.setValueAtTime(volume, ctx.currentTime + delay);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + delay);
+                    osc.stop(ctx.currentTime + delay + duration);
+                } catch (e) {}
+            },
+            playSelect() {
+                this.playTone(587.33, 0.1, 'triangle', 0.12);
+                this.playTone(880, 0.12, 'triangle', 0.1, 0.05);
+            },
+            playDeselect() {
+                this.playTone(392, 0.1, 'sine', 0.09);
+            },
+            playVoteSuccess() {
+                const notes = [523.25, 659.25, 783.99, 1046.5];
+                notes.forEach((n, i) => this.playTone(n, 0.22, 'triangle', 0.13, i * 0.08));
+            },
+            playBallotArrive() {
+                this.playTone(698.46, 0.12, 'sine', 0.08);
+                this.playTone(1046.5, 0.18, 'sine', 0.09, 0.07);
+            },
+            playTick(step) {
+                const pitch = 300 + (step % 6) * 45;
+                this.playTone(pitch, 0.05, 'square', 0.05);
+            },
+            playFanfare() {
+                const chord = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+                chord.forEach((n, i) => this.playTone(n, 0.35, 'triangle', 0.14, i * 0.07));
+            }
+        };
+
+        // --- 4. HELPER FUNCTIONS & FIRESTORE REFERENCES ---
+        function generateSessionCode() {
+            const num = Math.floor(1000 + Math.random() * 9000);
+            return `THANKS-${num}`;
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function makeTeacherObj(name, index) {
+            return {
+                id: 't_' + Math.random().toString(36).slice(2, 9) + '_' + index,
+                name: name.trim(),
+                avatar: AVATAR_EMOJIS[index % AVATAR_EMOJIS.length]
+            };
+        }
+
+        // Valid 6-segment document path: artifacts/{appId}/public/data/sessions/{sessionId}
+        function getSessionDocRef() {
+            return doc(db, 'artifacts', appId, 'public', 'data', 'sessions', appState.sessionId);
+        }
+
+        // Valid 7-segment collection path: artifacts/{appId}/public/data/sessions/{sessionId}/ballots
+        function getBallotsColRef() {
+            return collection(db, 'artifacts', appId, 'public', 'data', 'sessions', appState.sessionId, 'ballots');
+        }
+
+        // --- 5. INITIALIZATION & REAL-TIME SUBSCRIPTIONS ---
+        async function initApp() {
+            document.getElementById('headerSessionCode').textContent = appState.sessionId;
+            document.getElementById('setupSessionBadge').textContent = appState.sessionId;
+            document.getElementById('dashboardSessionCode').textContent = appState.sessionId;
+
+            if (useCloudSync && auth) {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        const cred = await signInWithCustomToken(auth, __initial_auth_token);
+                        appState.user = cred.user;
+                    } else {
+                        const cred = await signInAnonymously(auth);
+                        appState.user = cred.user;
+                    }
+                } catch (err) {
+                    console.error("Firebase auth error, switching to local mode:", err);
+                    useCloudSync = false;
+                }
+            }
+
+            if (!useCloudSync) {
+                const pill = document.getElementById('syncStatusText');
+                if (pill) pill.textContent = 'Local Mode';
+            }
+
+            document.getElementById('loadingOverlay').classList.add('hidden');
+
+            if (appState.mode === 'host') {
+                resetSampleRoster(false);
+                document.getElementById('host-screen-setup').classList.remove('hidden');
+
+                // Initialize session document in Firestore
+                if (useCloudSync && appState.user) {
+                    try {
+                        await setDoc(getSessionDocRef(), {
+                            status: 'setup',
+                            teachers: appState.draftTeachers,
+                            updatedAt: serverTimestamp()
+                        }, { merge: true });
+                    } catch (err) {
+                        console.error("Initial session creation error:", err);
+                    }
+                }
+            } else {
+                document.getElementById('modeBadge').textContent = 'Voter Phone View';
+                document.getElementById('modeBadge').className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
+                // Check if this browser already voted in this session
+                if (localStorage.getItem(`voted_${appState.sessionId}`) === '1') {
+                    appState.hasVotedLocally = true;
+                }
+                renderStickerPicker();
+            }
+
+            subscribeToLiveSession();
+        }
+
+        function subscribeToLiveSession() {
+            if (!useCloudSync || !appState.user) {
+                if (appState.mode === 'voter') {
+                    updateVoterScreenState();
+                }
+                return;
+            }
+
+            if (unsubscribeSession) unsubscribeSession();
+            if (unsubscribeBallots) unsubscribeBallots();
+
+            // Listen to Session Metadata (status & teacher list)
+            unsubscribeSession = onSnapshot(getSessionDocRef(), (snap) => {
+                if (snap.exists()) {
+                    const data = snap.data();
+                    appState.sessionData = {
+                        status: data.status || 'setup',
+                        teachers: Array.isArray(data.teachers) ? data.teachers : []
+                    };
+                }
+
+                if (appState.mode === 'voter') {
+                    updateVoterScreenState();
+                } else {
+                    updateDashboardCounters();
+                    if (appState.currentHostScreen === 'luckydraw') {
+                        renderLuckyDrawGrid();
+                    } else if (appState.currentHostScreen === 'finale') {
+                        prepareFinaleScreen();
+                    }
+                }
+            }, (err) => {
+                console.error("Session snapshot error:", err);
+            });
+
+            // Listen to Real-Time Anonymous Ballots Collection
+            unsubscribeBallots = onSnapshot(getBallotsColRef(), (snapshot) => {
+                const newBallots = [];
+                snapshot.forEach((docSnap) => {
+                    newBallots.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                const prevCount = appState.lastBallotCount;
+                appState.ballots = newBallots;
+
+                if (appState.mode === 'host') {
+                    if (newBallots.length > prevCount && prevCount >= 0 && appState.currentHostScreen === 'dashboard') {
+                        AudioEngine.playBallotArrive();
+                        const bigEl = document.getElementById('liveBallotCounterBig');
+                        if (bigEl) {
+                            bigEl.classList.remove('animate-bump');
+                            void bigEl.offsetWidth;
+                            bigEl.classList.add('animate-bump');
+                        }
+                    }
+                    appState.lastBallotCount = newBallots.length;
+                    updateDashboardCounters();
+                    if (appState.currentHostScreen === 'finale') {
+                        prepareFinaleScreen();
+                    }
+                }
+            }, (err) => {
+                console.error("Ballots snapshot error:", err);
+            });
+        }
+
+        // --- 6. HOST SCREEN 1: SETUP & ROSTER MANAGEMENT ---
+        function renderSetupRoster() {
+            const grid = document.getElementById('setupRosterGrid');
+            const countBadge = document.getElementById('setupRosterCount');
+            const count = appState.draftTeachers.length;
+            countBadge.textContent = `${count} Teacher${count === 1 ? '' : 's'}`;
+
+            if (count === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-8 text-sm font-bold text-amber-900/50">No teachers added yet. Add names above or click "Sample List".</div>`;
+                return;
+            }
+
+            grid.innerHTML = appState.draftTeachers.map(t => `
+                <div class="flex items-center justify-between gap-2 bg-amber-50/80 border border-amber-200 rounded-xl px-3.5 py-2.5 group hover:border-orange-400 transition-colors">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="text-xl shrink-0">${t.avatar}</span>
+                        <span class="font-bold text-sm text-autumn-espresso truncate">${escapeHtml(t.name)}</span>
+                    </div>
+                    <button onclick="removeTeacher('${t.id}')" class="text-stone-400 hover:text-rose-600 font-extrabold text-xs px-1.5 py-0.5 rounded-lg hover:bg-rose-50 transition-colors" title="Remove">
+                        ✕
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        window.addSingleTeacher = function() {
+            const input = document.getElementById('newTeacherInput');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const exists = appState.draftTeachers.some(t => t.name.toLowerCase() === name.toLowerCase());
+            if (exists) {
+                showToast(`"${name}" is already on the list!`, "✋");
+                return;
+            }
+
+            appState.draftTeachers.push(makeTeacherObj(name, appState.draftTeachers.length));
+            input.value = '';
+            AudioEngine.playSelect();
+            renderSetupRoster();
+        };
+
+        window.removeTeacher = function(id) {
+            appState.draftTeachers = appState.draftTeachers.filter(t => t.id !== id);
+            AudioEngine.playDeselect();
+            renderSetupRoster();
+        };
+
+        window.toggleBulkModal = function() {
+            const box = document.getElementById('bulkPasteBox');
+            box.classList.toggle('hidden');
+            if (!box.classList.contains('hidden')) {
+                document.getElementById('bulkTextarea').focus();
+            }
+        };
+
+        window.applyBulkList = function(mode) {
+            const raw = document.getElementById('bulkTextarea').value;
+            const names = raw
+                .split(/[\n,]+/)
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            if (names.length === 0) {
+                showToast("Please paste at least one teacher name.", "⚠️");
+                return;
+            }
+
+            if (mode === 'replace') {
+                appState.draftTeachers = [];
+            }
+
+            let added = 0;
+            names.forEach(name => {
+                const exists = appState.draftTeachers.some(t => t.name.toLowerCase() === name.toLowerCase());
+                if (!exists) {
+                    appState.draftTeachers.push(makeTeacherObj(name, appState.draftTeachers.length));
+                    added++;
+                }
+            });
+
+            document.getElementById('bulkTextarea').value = '';
+            document.getElementById('bulkPasteBox').classList.add('hidden');
+            AudioEngine.playSelect();
+            renderSetupRoster();
+            showToast(`Added ${added} teacher${added === 1 ? '' : 's'} to the roster!`, "📋");
+        };
+
+        window.resetSampleRoster = function(showNotification = true) {
+            appState.draftTeachers = DEFAULT_TEACHERS.map((name, i) => makeTeacherObj(name, i));
+            renderSetupRoster();
+            if (showNotification) {
+                AudioEngine.playSelect();
+                showToast("Loaded sample roster of 12 teachers.", "↺");
+            }
+        };
+
+        window.clearAllTeachers = function() {
+            openCustomDialog(
+                "Clear Entire Roster?",
+                "This will remove all teachers from the current check-in list.",
+                () => {
+                    appState.draftTeachers = [];
+                    renderSetupRoster();
+                    showToast("Roster cleared.", "🧹");
+                }
+            );
+        };
+
+        window.launchLiveEvent = async function() {
+            if (appState.draftTeachers.length < 2) {
+                showToast("Please add at least 2 teachers before launching!", "⚠️");
+                return;
+            }
+
+            const btn = document.getElementById('launchEventBtn');
+            btn.disabled = true;
+
+            appState.sessionData = {
+                status: 'voting',
+                teachers: [...appState.draftTeachers]
+            };
+
+            if (useCloudSync && appState.user) {
+                try {
+                    await setDoc(getSessionDocRef(), {
+                        status: 'voting',
+                        teachers: appState.draftTeachers,
+                        updatedAt: serverTimestamp()
+                    }, { merge: true });
+                } catch (err) {
+                    console.error("Failed to launch live event:", err);
+                    showToast("Saved locally (cloud sync unavailable).", "⚠️");
+                }
+            }
+
+            btn.disabled = false;
+            AudioEngine.playFanfare();
+            triggerAutumnConfetti();
+
+            // Reveal host navigation & controls
+            document.getElementById('hostNavTabs').classList.remove('hidden');
+            document.getElementById('hostNavTabs').classList.add('flex');
+            document.getElementById('testPhoneBtn').classList.remove('hidden');
+            document.getElementById('editRosterBtn').classList.remove('hidden');
+
+            switchHostScreen('dashboard');
+            generateLiveQRCode();
+            updateDashboardCounters();
+            renderLuckyDrawGrid();
+        };
+
+        window.confirmBackToSetup = function() {
+            openCustomDialog(
+                "Return to Roster Setup?",
+                "You can add or edit attending teachers. Existing ballots already cast will stay safe!",
+                () => {
+                    switchHostScreen('setup');
+                }
+            );
+        };
+
+        window.switchHostScreen = function(screenName) {
+            appState.currentHostScreen = screenName;
+            ['setup', 'dashboard', 'luckydraw', 'finale'].forEach(s => {
+                document.getElementById(`host-screen-${s}`).classList.add('hidden');
+            });
+            document.getElementById(`host-screen-${screenName}`).classList.remove('hidden');
+
+            // Update active tab styling
+            ['dashboard', 'luckydraw', 'finale'].forEach(tab => {
+                const el = document.getElementById(`tab-${tab}`);
+                if (!el) return;
+                if (tab === screenName) {
+                    el.className = 'nav-tab px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 bg-orange-600 text-white shadow-sm';
+                } else {
+                    el.className = 'nav-tab px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 text-amber-950 hover:bg-white/70';
+                }
+            });
+
+            if (screenName === 'dashboard') {
+                generateLiveQRCode();
+                updateDashboardCounters();
+            } else if (screenName === 'luckydraw') {
+                renderLuckyDrawGrid();
+            } else if (screenName === 'finale') {
+                prepareFinaleScreen();
+            }
+        };
+
+        // --- 7. HOST SCREEN 2: SPOILER-FREE QR DASHBOARD ---
+        function isSandboxedPreviewUrl(urlStr) {
+            if (!urlStr) return true;
+            const lower = urlStr.toLowerCase();
+            return (
+                lower.startsWith('about:') ||
+                lower.startsWith('blob:') ||
+                lower.startsWith('file:') ||
+                lower.startsWith('data:') ||
+                lower.includes('localhost') ||
+                lower.includes('127.0.0.1') ||
+                lower.includes('usercontent.goog') ||
+                lower.includes('webcontainer')
+            );
+        }
+
+        function getVoterShareUrl() {
+            if (appState.customBaseUrl) {
+                try {
+                    const custom = new URL(appState.customBaseUrl);
+                    custom.searchParams.set('session', appState.sessionId);
+                    return custom.toString();
+                } catch (e) {}
+            }
+
+            try {
+                const current = new URL(window.location.href);
+                if (current.protocol === 'http:' || current.protocol === 'https:') {
+                    return `${current.origin}${current.pathname}?session=${encodeURIComponent(appState.sessionId)}`;
+                }
+            } catch (e) {}
+
+            return `Room Code: ${appState.sessionId}`;
+        }
+
+        function generateLiveQRCode() {
+            const shareUrl = getVoterShareUrl();
+            document.getElementById('shareableUrlText').textContent = shareUrl;
+
+            const notice = document.getElementById('qrPreviewNotice');
+            if (!appState.customBaseUrl && isSandboxedPreviewUrl(window.location.href)) {
+                notice.classList.remove('hidden');
+            } else {
+                notice.classList.add('hidden');
+            }
+
+            const qrContainer = document.getElementById('qrcodeContainer');
+            qrContainer.innerHTML = '';
+
+            if (typeof QRCode === 'undefined') {
+                qrContainer.innerHTML = `<div class="text-xs font-bold text-rose-700 p-4 text-center">QR library failed to load.<br>Share Room Code: <span class="font-mono">${escapeHtml(appState.sessionId)}</span></div>`;
+                return;
+            }
+
+            try {
+                new QRCode(qrContainer, {
+                    text: shareUrl,
+                    width: 210,
+                    height: 210,
+                    colorDark: "#2D1A12",
+                    colorLight: "#FFFFFF",
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+            } catch (err) {
+                console.error("QR generation error:", err);
+                try {
+                    new QRCode(qrContainer, {
+                        text: appState.sessionId,
+                        width: 210,
+                        height: 210,
+                        colorDark: "#2D1A12",
+                        colorLight: "#FFFFFF",
+                        correctLevel: QRCode.CorrectLevel.L
+                    });
+                    showToast("URL was too long for QR—showing Room Code QR instead. Paste a shorter hosted URL below!", "⚠️");
+                } catch (e2) {
+                    qrContainer.innerHTML = `<div class="text-xs font-bold text-amber-900 p-4 text-center">Room Code:<br><span class="font-mono text-lg text-orange-700">${escapeHtml(appState.sessionId)}</span></div>`;
+                }
+            }
+        }
+
+        window.applyCustomBaseUrl = function() {
+            const input = document.getElementById('customBaseUrlInput');
+            let val = input.value.trim();
+            if (!val) {
+                appState.customBaseUrl = '';
+                generateLiveQRCode();
+                showToast("Reset to default URL.", "↺");
+                return;
+            }
+            if (!/^https?:\/\//i.test(val)) {
+                val = 'https://' + val;
+            }
+            try {
+                new URL(val);
+                appState.customBaseUrl = val;
+                generateLiveQRCode();
+                AudioEngine.playSelect();
+                showToast("QR Code updated with your public URL!", "✅");
+            } catch (e) {
+                showToast("Please enter a valid web address (e.g., https://mysite.netlify.app)", "⚠️");
+            }
+        };
+
+        window.copyVoteLink = function() {
+            const shareUrl = getVoterShareUrl();
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = shareUrl;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                AudioEngine.playSelect();
+                showToast("Voting link copied to clipboard!", "📋");
+            } catch (e) {
+                showToast("Could not copy automatically—please select and copy the link.", "⚠️");
+            }
+        };
+
+        function updateDashboardCounters() {
+            const totalBallots = appState.ballots.length;
+            const totalTeachers = (appState.sessionData.teachers?.length || appState.draftTeachers.length) || 1;
+            const pct = Math.min(100, Math.round((totalBallots / totalTeachers) * 100));
+
+            const counterEl = document.getElementById('liveBallotCounterBig');
+            const subtextEl = document.getElementById('liveParticipationSubtext');
+            const ratioEl = document.getElementById('participationRatioText');
+            const barEl = document.getElementById('participationProgressBar');
+            const feedEl = document.getElementById('anonymousFeedList');
+
+            if (counterEl) counterEl.textContent = totalBallots;
+            if (ratioEl) ratioEl.textContent = `${totalBallots} / ${totalTeachers} Teachers`;
+            if (barEl) barEl.style.width = `${pct}%`;
+
+            if (subtextEl) {
+                if (totalBallots === 0) {
+                    subtextEl.textContent = "Waiting for the first phone ballot to arrive... 🦃";
+                } else if (totalBallots < totalTeachers) {
+                    subtextEl.textContent = `Awesome! ${totalBallots} anonymous appreciation ballot${totalBallots === 1 ? '' : 's'} locked in! 🍂`;
+                } else {
+                    subtextEl.textContent = `🎉 Incredible! ${totalBallots} ballots received—everyone's gratitude is pouring in!`;
+                }
+            }
+
+            if (feedEl) {
+                if (totalBallots === 0) {
+                    feedEl.innerHTML = `<div class="text-stone-400 italic">No ballots received yet. Scan the QR code to cast the first vote!</div>`;
+                } else {
+                    const recent = appState.ballots.slice(-6).reverse();
+                    feedEl.innerHTML = recent.map((b, i) => `
+                        <div class="flex items-center justify-between bg-white px-3 py-1.5 rounded-lg border border-stone-200 animate-pop-in">
+                            <span>💌 Anonymous Ballot #${totalBallots - i} locked in</span>
+                            <span class="text-[11px] font-bold text-orange-700">${escapeHtml(b.sticker || '🧡 Gratitude')}</span>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // Update open/closed badge
+            const dot = document.getElementById('votingStatusDot');
+            const heading = document.getElementById('votingStatusHeading');
+            if (appState.sessionData.status === 'closed') {
+                if (dot) dot.className = 'w-3.5 h-3.5 rounded-full bg-rose-600';
+                if (heading) heading.textContent = 'Voting is CLOSED';
+            } else {
+                if (dot) dot.className = 'w-3.5 h-3.5 rounded-full bg-emerald-500 animate-ping';
+                if (heading) heading.textContent = 'Live Voting is OPEN!';
+            }
+        }
+
+        window.closeVotingAndGoToFinale = function() {
+            openCustomDialog(
+                "Close Voting & Reveal Winners?",
+                `There are currently ${appState.ballots.length} anonymous ballots cast. Closing voting will lock phones and open the Top 5 Grand Finale stage.`,
+                async () => {
+                    appState.sessionData.status = 'closed';
+                    if (useCloudSync && appState.user) {
+                        try {
+                            await setDoc(getSessionDocRef(), {
+                                status: 'closed',
+                                updatedAt: serverTimestamp()
+                            }, { merge: true });
+                        } catch (err) {
+                            console.error("Failed to close voting:", err);
+                        }
+                    }
+                    updateDashboardCounters();
+                    switchHostScreen('finale');
+                    showToast("Voting closed! Ready for the Top 5 Finale!", "🏆");
+                }
+            );
+        };
+
+        // --- 8. HOST TEST PHONE PREVIEW / KIOSK MODAL & JOIN BY CODE ---
+        window.openPhonePreviewModal = function() {
+            appState.previewSelectedIds = [];
+            appState.previewSticker = VIBE_STICKERS[0];
+            appState.previewVoted = false;
+            document.getElementById('modalSessionId').textContent = appState.sessionId;
+            document.getElementById('phonePreviewModal').classList.remove('hidden');
+            renderPreviewModalContent();
+        };
+
+        window.closePhonePreviewModal = function() {
+            document.getElementById('phonePreviewModal').classList.add('hidden');
+        };
+
+        function renderPreviewModalContent() {
+            const body = document.getElementById('previewPhoneBody');
+            const footer = document.getElementById('previewPhoneFooter');
+            const teachers = (appState.sessionData.teachers && appState.sessionData.teachers.length > 0)
+                ? appState.sessionData.teachers
+                : appState.draftTeachers;
+
+            if (appState.previewVoted) {
+                footer.classList.add('hidden');
+                body.innerHTML = `
+                    <div class="bg-white rounded-3xl p-6 text-center shadow-md border-2 border-amber-300 space-y-4 my-4 animate-pop-in">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-3xl shadow-md">🧡</div>
+                        <h3 class="font-display text-2xl font-bold text-autumn-espresso">Anonymous Vote Sent!</h3>
+                        <p class="text-xs text-amber-900/80 font-medium">
+                            Your 2 choices were secretly counted in real time. Check the host screen behind this window to see the ballot counter jump!
+                        </p>
+                        <div class="flex flex-col gap-2 pt-2">
+                            <button onclick="resetPreviewVote()" class="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-display font-bold text-base shadow-sm">
+                                📲 Cast Another Vote (Next Teacher)
+                            </button>
+                            <button onclick="closePhonePreviewModal()" class="w-full py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs">
+                                Close Preview
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            footer.classList.remove('hidden');
+            const twoSelected = appState.previewSelectedIds.length >= 2;
+
+            body.innerHTML = `
+                <div class="bg-white rounded-2xl p-3.5 border border-amber-200 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-extrabold uppercase">🔒 100% Anonymous</span>
+                        <span class="text-[11px] font-bold text-orange-700">Pick 2 Different Peers</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 pt-1">
+                        ${VIBE_STICKERS.map(st => {
+                            const active = appState.previewSticker === st;
+                            return `<button type="button" onclick="selectPreviewSticker('${escapeHtml(st)}')" class="px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all ${active ? 'bg-orange-600 text-white border-orange-600' : 'bg-amber-50 text-amber-950 border-amber-200'}">${escapeHtml(st)}</button>`;
+                        }).join('')}
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    ${teachers.map(t => {
+                        const selIdx = appState.previewSelectedIds.indexOf(t.id);
+                        const isSel = selIdx !== -1;
+                        const isDim = twoSelected && !isSel;
+                        return `
+                            <button type="button" onclick="togglePreviewTeacherPick('${t.id}')"
+                                class="teacher-card text-left bg-white rounded-2xl p-3 border-2 border-amber-200 shadow-sm flex flex-col justify-between min-h-[96px] ${isSel ? 'selected' : ''} ${isDim ? 'dimmed' : ''}">
+                                <div class="flex items-start justify-between w-full">
+                                    <span class="w-9 h-9 rounded-xl ${isSel ? 'bg-orange-500 text-white' : 'bg-amber-100'} flex items-center justify-center text-lg">${isSel ? '🧡' : t.avatar}</span>
+                                    ${isSel ? `<span class="px-2 py-0.5 rounded-full bg-orange-600 text-white text-[10px] font-extrabold">#${selIdx + 1} ✓</span>` : `<span class="w-5 h-5 rounded-full border-2 border-amber-200 flex items-center justify-center text-amber-300 text-xs font-bold">+</span>`}
+                                </div>
+                                <span class="font-display text-sm font-bold text-autumn-espresso leading-tight mt-2 block break-words">${escapeHtml(t.name)}</span>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+            const t1 = teachers.find(t => t.id === appState.previewSelectedIds[0]);
+            const t2 = teachers.find(t => t.id === appState.previewSelectedIds[1]);
+            const s1 = document.getElementById('previewSlot1');
+            const s2 = document.getElementById('previewSlot2');
+            const btn = document.getElementById('previewSubmitBtn');
+            const btnText = document.getElementById('previewSubmitBtnText');
+
+            s1.textContent = t1 ? `${t1.avatar} ${t1.name}` : '1️⃣ Pick 1st';
+            s2.textContent = t2 ? `${t2.avatar} ${t2.name}` : '2️⃣ Pick 2nd';
+
+            if (appState.previewSelectedIds.length === 2) {
+                btn.disabled = false;
+                btnText.textContent = 'Submit Anonymous Vote 💌';
+            } else if (appState.previewSelectedIds.length === 1) {
+                btn.disabled = true;
+                btnText.textContent = 'Pick 1 More Teacher';
+            } else {
+                btn.disabled = true;
+                btnText.textContent = 'Select 2 Teachers';
+            }
+        }
+
+        window.selectPreviewSticker = function(sticker) {
+            appState.previewSticker = sticker;
+            AudioEngine.playSelect();
+            renderPreviewModalContent();
+        };
+
+        window.togglePreviewTeacherPick = function(id) {
+            const idx = appState.previewSelectedIds.indexOf(id);
+            if (idx !== -1) {
+                appState.previewSelectedIds.splice(idx, 1);
+                AudioEngine.playDeselect();
+            } else {
+                if (appState.previewSelectedIds.length >= 2) {
+                    AudioEngine.playDeselect();
+                    showToast("Pick only 2 teachers! Tap one to deselect first.", "✋");
+                    return;
+                }
+                appState.previewSelectedIds.push(id);
+                AudioEngine.playSelect();
+            }
+            renderPreviewModalContent();
+        };
+
+        window.submitPreviewVote = async function() {
+            if (appState.previewSelectedIds.length !== 2) return;
+            const btn = document.getElementById('previewSubmitBtn');
+            btn.disabled = true;
+            document.getElementById('previewSubmitBtnText').textContent = 'Sending...';
+
+            const ballotPayload = {
+                choices: [appState.previewSelectedIds[0], appState.previewSelectedIds[1]],
+                sticker: appState.previewSticker
+            };
+
+            try {
+                if (useCloudSync && appState.user) {
+                    await addDoc(getBallotsColRef(), {
+                        ...ballotPayload,
+                        createdAt: serverTimestamp()
+                    });
+                } else {
+                    appState.ballots.push({ id: 'local_' + Date.now(), ...ballotPayload });
+                    updateDashboardCounters();
+                }
+
+                appState.previewVoted = true;
+                AudioEngine.playVoteSuccess();
+                triggerAutumnConfetti();
+                renderPreviewModalContent();
+            } catch (err) {
+                console.error("Preview vote error:", err);
+                showToast("Failed to submit vote. Try again.", "⚠️");
+                btn.disabled = false;
+                document.getElementById('previewSubmitBtnText').textContent = 'Submit Anonymous Vote 💌';
+            }
+        };
+
+        window.resetPreviewVote = function() {
+            appState.previewSelectedIds = [];
+            appState.previewVoted = false;
+            renderPreviewModalContent();
+        };
+
+        window.openJoinRoomModal = function() {
+            document.getElementById('joinRoomModal').classList.remove('hidden');
+            const input = document.getElementById('joinRoomCodeInput');
+            input.value = '';
+            input.focus();
+        };
+
+        window.closeJoinRoomModal = function() {
+            document.getElementById('joinRoomModal').classList.add('hidden');
+        };
+
+        window.joinRoomByCode = function() {
+            let code = document.getElementById('joinRoomCodeInput').value.trim().toUpperCase();
+            if (!code) {
+                showToast("Please enter a Room Code.", "⚠️");
+                return;
+            }
+            if (/^\d{4}$/.test(code)) {
+                code = `THANKS-${code}`;
+            }
+
+            closeJoinRoomModal();
+            appState.mode = 'voter';
+            appState.sessionId = code;
+            appState.selectedIds = [];
+            appState.hasVotedLocally = localStorage.getItem(`voted_${code}`) === '1';
+
+            document.getElementById('headerSessionCode').textContent = code;
+            document.getElementById('modeBadge').textContent = 'Voter Phone View';
+            document.getElementById('modeBadge').className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
+
+            // Hide host UI & show voter UI
+            ['setup', 'dashboard', 'luckydraw', 'finale'].forEach(s => {
+                document.getElementById(`host-screen-${s}`).classList.add('hidden');
+            });
+            document.getElementById('hostNavTabs').classList.add('hidden');
+            document.getElementById('testPhoneBtn').classList.add('hidden');
+            document.getElementById('editRosterBtn').classList.add('hidden');
+
+            renderStickerPicker();
+            subscribeToLiveSession();
+            showToast(`Joined room ${code}!`, "🔑");
+        };
+
+        // --- 9. VOTER PHONE MODE ---
+        function renderStickerPicker() {
+            const row = document.getElementById('stickerPickerRow');
+            row.innerHTML = VIBE_STICKERS.map(sticker => {
+                const isSelected = appState.selectedSticker === sticker;
+                return `
+                    <button type="button" onclick="selectVibeSticker('${escapeHtml(sticker)}')"
+                        class="px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${isSelected ? 'bg-orange-600 text-white border-orange-600 shadow-sm' : 'bg-amber-50 text-amber-950 border-amber-200 hover:bg-amber-100'}">
+                        ${escapeHtml(sticker)}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        window.selectVibeSticker = function(sticker) {
+            appState.selectedSticker = sticker;
+            AudioEngine.playSelect();
+            renderStickerPicker();
+        };
+
+        function updateVoterScreenState() {
+            document.getElementById('voter-phone-view').classList.remove('hidden');
+            ['waiting', 'closed', 'submitted', 'ballot'].forEach(st => {
+                document.getElementById(`voter-state-${st}`).classList.add('hidden');
+            });
+
+            const status = appState.sessionData.status;
+
+            if (appState.hasVotedLocally) {
+                document.getElementById('voter-state-submitted').classList.remove('hidden');
+            } else if (status === 'setup') {
+                document.getElementById('voter-state-waiting').classList.remove('hidden');
+            } else if (status === 'closed') {
+                document.getElementById('voter-state-closed').classList.remove('hidden');
+            } else {
+                document.getElementById('voter-state-ballot').classList.remove('hidden');
+                renderPhoneTeacherList();
+                updatePhoneSelectionDock();
+            }
+        }
+
+        window.renderPhoneTeacherList = function() {
+            const grid = document.getElementById('phoneTeacherGrid');
+            const query = (document.getElementById('phoneSearchInput')?.value || '').toLowerCase().trim();
+            const teachers = appState.sessionData.teachers || [];
+            const filtered = teachers.filter(t => t.name.toLowerCase().includes(query));
+            const twoSelected = appState.selectedIds.length >= 2;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs font-bold text-amber-900/60">No teacher matched "${escapeHtml(query)}"</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(teacher => {
+                const selectedIdx = appState.selectedIds.indexOf(teacher.id);
+                const isSelected = selectedIdx !== -1;
+                const isDimmed = twoSelected && !isSelected;
+
+                return `
+                    <button type="button" onclick="togglePhoneTeacherPick('${teacher.id}')"
+                        class="teacher-card text-left bg-white rounded-2xl p-3.5 border-2 border-amber-200 shadow-sm flex flex-col justify-between min-h-[115px] ${isSelected ? 'selected' : ''} ${isDimmed ? 'dimmed' : ''}">
+                        <div class="flex items-start justify-between w-full">
+                            <span class="w-10 h-10 rounded-xl ${isSelected ? 'bg-orange-500 text-white' : 'bg-amber-100'} flex items-center justify-center text-xl">
+                                ${isSelected ? '🧡' : teacher.avatar}
+                            </span>
+                            ${isSelected ? `
+                                <span class="px-2 py-0.5 rounded-full bg-orange-600 text-white text-[11px] font-extrabold">
+                                    #${selectedIdx + 1} ✓
+                                </span>
+                            ` : `
+                                <span class="w-6 h-6 rounded-full border-2 border-amber-200 flex items-center justify-center text-amber-300 text-xs font-bold">+</span>
+                            `}
+                        </div>
+                        <div class="mt-2.5">
+                            <span class="font-display text-base font-bold text-autumn-espresso leading-tight block break-words">
+                                ${escapeHtml(teacher.name)}
+                            </span>
+                        </div>
+                    </button>
+                `;
+            }).join('');
+        };
+
+        window.togglePhoneTeacherPick = function(id) {
+            const idx = appState.selectedIds.indexOf(id);
+            if (idx !== -1) {
+                appState.selectedIds.splice(idx, 1);
+                AudioEngine.playDeselect();
+            } else {
+                if (appState.selectedIds.length >= 2) {
+                    AudioEngine.playDeselect();
+                    showToast("You can only pick 2 teachers! Tap one to deselect first.", "✋");
+                    return;
+                }
+                appState.selectedIds.push(id);
+                AudioEngine.playSelect();
+            }
+            renderPhoneTeacherList();
+            updatePhoneSelectionDock();
+        };
+
+        function updatePhoneSelectionDock() {
+            const teachers = appState.sessionData.teachers || [];
+            const t1 = teachers.find(t => t.id === appState.selectedIds[0]);
+            const t2 = teachers.find(t => t.id === appState.selectedIds[1]);
+
+            const s1 = document.getElementById('phoneSlot1');
+            const s2 = document.getElementById('phoneSlot2');
+            const btn = document.getElementById('phoneSubmitBtn');
+            const btnText = document.getElementById('phoneSubmitBtnText');
+
+            s1.textContent = t1 ? `${t1.avatar} ${t1.name}` : '1️⃣ Pick 1st';
+            s1.className = t1 ? 'px-2.5 py-1 rounded-lg bg-amber-500/30 border border-amber-400 text-white truncate max-w-[44%]' : 'px-2.5 py-1 rounded-lg bg-white/10 text-amber-200 truncate max-w-[44%]';
+
+            s2.textContent = t2 ? `${t2.avatar} ${t2.name}` : '2️⃣ Pick 2nd';
+            s2.className = t2 ? 'px-2.5 py-1 rounded-lg bg-amber-500/30 border border-amber-400 text-white truncate max-w-[44%]' : 'px-2.5 py-1 rounded-lg bg-white/10 text-amber-200 truncate max-w-[44%]';
+
+            if (appState.selectedIds.length === 2) {
+                btn.disabled = false;
+                btnText.textContent = 'Submit Anonymous Vote 💌';
+            } else if (appState.selectedIds.length === 1) {
+                btn.disabled = true;
+                btnText.textContent = 'Pick 1 More Teacher';
+            } else {
+                btn.disabled = true;
+                btnText.textContent = 'Select 2 Teachers';
+            }
+        }
+
+        window.submitPhoneVote = async function() {
+            if (appState.selectedIds.length !== 2) return;
+            if (appState.selectedIds[0] === appState.selectedIds[1]) return;
+
+            const btn = document.getElementById('phoneSubmitBtn');
+            btn.disabled = true;
+            document.getElementById('phoneSubmitBtnText').textContent = 'Sending Appreciation...';
+
+            try {
+                if (useCloudSync && appState.user) {
+                    await addDoc(getBallotsColRef(), {
+                        choices: [appState.selectedIds[0], appState.selectedIds[1]],
+                        sticker: appState.selectedSticker,
+                        createdAt: serverTimestamp()
+                    });
+                }
+
+                localStorage.setItem(`voted_${appState.sessionId}`, '1');
+                appState.hasVotedLocally = true;
+                AudioEngine.playVoteSuccess();
+                triggerAutumnConfetti();
+                updateVoterScreenState();
+            } catch (err) {
+                console.error("Vote submit error:", err);
+                showToast("Could not submit vote. Please check connection.", "⚠️");
+                btn.disabled = false;
+                document.getElementById('phoneSubmitBtnText').textContent = 'Submit Anonymous Vote 💌';
+            }
+        };
+
+        // --- 10. THANKSGIVING LUCKY DRAW (HOST VIEW) ---
+        function getEligibleDrawTeachers() {
+            const teachers = (appState.sessionData.teachers && appState.sessionData.teachers.length > 0)
+                ? appState.sessionData.teachers
+                : appState.draftTeachers;
+            const excludeDrawn = document.getElementById('removeWinnerCheckbox')?.checked ?? true;
+            if (!excludeDrawn) return [...teachers];
+            return teachers.filter(t => !appState.drawnWinnerIds.includes(t.id));
+        }
+
+        window.renderLuckyDrawGrid = function(highlightedId = null) {
+            const teachers = (appState.sessionData.teachers && appState.sessionData.teachers.length > 0)
+                ? appState.sessionData.teachers
+                : appState.draftTeachers;
+            const grid = document.getElementById('luckyDrawGrid');
+            const eligible = getEligibleDrawTeachers();
+            document.getElementById('eligiblePoolCount').textContent = `${eligible.length} Teacher${eligible.length === 1 ? '' : 's'}`;
+
+            grid.innerHTML = teachers.map(t => {
+                const isAlreadyDrawn = appState.drawnWinnerIds.includes(t.id);
+                const isSpotlight = t.id === highlightedId;
+                return `
+                    <div class="draw-tile p-3 rounded-2xl border-2 border-amber-200 bg-amber-50/70 flex items-center gap-2.5 ${isSpotlight ? 'active-spotlight' : ''} ${isAlreadyDrawn && !isSpotlight ? 'drawn-already' : ''}">
+                        <span class="text-xl shrink-0">${t.avatar}</span>
+                        <span class="font-bold text-sm truncate">${escapeHtml(t.name)}</span>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.startLuckyDraw = function() {
+            if (appState.isSpinning) return;
+            const eligible = getEligibleDrawTeachers();
+            if (eligible.length === 0) {
+                showToast("Everyone has been drawn! Click 'Reset Pool' to spin again.", "🎁");
+                return;
+            }
+
+            appState.isSpinning = true;
+            const spinBtn = document.getElementById('spinDrawBtn');
+            spinBtn.disabled = true;
+            spinBtn.classList.add('opacity-60');
+
+            document.getElementById('luckyStatusSubtitle').textContent = "🥁 Drumroll please... Picking a lucky teacher! 🥁";
+            document.getElementById('luckyWinnerMessage').textContent = "Good luck everyone!";
+
+            const winningTeacher = eligible[Math.floor(Math.random() * eligible.length)];
+            let step = 0;
+            const totalSteps = Math.max(24, eligible.length * 2 + 10);
+
+            function runStep() {
+                const candidate = step >= totalSteps
+                    ? winningTeacher
+                    : eligible[Math.floor(Math.random() * eligible.length)];
+
+                renderLuckyDrawGrid(candidate.id);
+                document.getElementById('luckySpotlightName').textContent = `${candidate.avatar} ${candidate.name}`;
+                AudioEngine.playTick(step);
+
+                if (step < totalSteps) {
+                    step++;
+                    const progress = step / totalSteps;
+                    const delay = 55 + Math.pow(progress, 2.4) * 280;
+                    setTimeout(runStep, delay);
+                } else {
+                    finalizeLuckyWinner(winningTeacher);
+                }
+            }
+
+            runStep();
+        };
+
+        function finalizeLuckyWinner(winner) {
+            appState.isSpinning = false;
+            const spinBtn = document.getElementById('spinDrawBtn');
+            spinBtn.disabled = false;
+            spinBtn.classList.remove('opacity-60');
+
+            if (!appState.drawnWinnerIds.includes(winner.id)) {
+                appState.drawnWinnerIds.push(winner.id);
+            }
+
+            appState.luckyHistory.unshift({
+                name: winner.name,
+                avatar: winner.avatar,
+                round: appState.luckyHistory.length + 1
+            });
+
+            document.getElementById('luckyStatusSubtitle').textContent = "🎉 CONGRATULATIONS LUCKY WINNER! 🎉";
+            document.getElementById('luckySpotlightName').textContent = `🏆 ${winner.name} 🏆`;
+            document.getElementById('luckyWinnerMessage').textContent = "Step up to claim your Thanksgiving Lucky Draw treat!";
+
+            AudioEngine.playFanfare();
+            triggerAutumnConfetti();
+            renderLuckyDrawGrid(winner.id);
+            renderLuckyHistory();
+        }
+
+        function renderLuckyHistory() {
+            const list = document.getElementById('luckyWinnersHistoryList');
+            if (appState.luckyHistory.length === 0) {
+                list.innerHTML = `<div class="text-center py-12 text-amber-900/50 text-sm font-medium">No lucky winners drawn yet.<br>Spin the draw to award prizes! 🥧</div>`;
+                return;
+            }
+            list.innerHTML = appState.luckyHistory.map(item => `
+                <div class="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 animate-pop-in">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-full bg-orange-600 text-white text-xs font-extrabold flex items-center justify-center">#${item.round}</span>
+                        <span class="text-xl">${item.avatar}</span>
+                        <span class="font-bold text-autumn-espresso text-sm">${escapeHtml(item.name)}</span>
+                    </div>
+                    <span class="text-xs font-extrabold text-amber-700">🎁 Winner</span>
+                </div>
+            `).join('');
+        }
+
+        window.resetLuckyDrawPool = function() {
+            appState.drawnWinnerIds = [];
+            appState.luckyHistory = [];
+            document.getElementById('luckyStatusSubtitle').textContent = "Pool Reset! Ready to spin again!";
+            document.getElementById('luckySpotlightName').textContent = "🦃 Who’s Next? 🦃";
+            document.getElementById('luckyWinnerMessage').textContent = "All attending teachers are back in the draw pool.";
+            renderLuckyDrawGrid();
+            renderLuckyHistory();
+            showToast("Lucky Draw pool reset!", "↺");
+        };
+
+        // --- 11. GRAND FINALE: TALLY BALLOTS & REVEAL TOP 5 ---
+        function computeTalliedTeachers() {
+            const teachers = (appState.sessionData.teachers && appState.sessionData.teachers.length > 0)
+                ? appState.sessionData.teachers
+                : appState.draftTeachers;
+            const tallyMap = {};
+            const stickerMap = {};
+
+            teachers.forEach(t => {
+                tallyMap[t.id] = 0;
+                stickerMap[t.id] = [];
+            });
+
+            appState.ballots.forEach(b => {
+                if (Array.isArray(b.choices)) {
+                    b.choices.forEach(choiceId => {
+                        if (tallyMap[choiceId] !== undefined) {
+                            tallyMap[choiceId] += 1;
+                            if (b.sticker) stickerMap[choiceId].push(b.sticker);
+                        }
+                    });
+                }
+            });
+
+            return teachers.map(t => {
+                const counts = {};
+                let topSticker = '';
+                let maxS = 0;
+                (stickerMap[t.id] || []).forEach(s => {
+                    counts[s] = (counts[s] || 0) + 1;
+                    if (counts[s] > maxS) {
+                        maxS = counts[s];
+                        topSticker = s;
+                    }
+                });
+
+                return {
+                    ...t,
+                    votes: tallyMap[t.id] || 0,
+                    topSticker
+                };
+            }).sort((a, b) => {
+                if (b.votes !== a.votes) return b.votes - a.votes;
+                return a.name.localeCompare(b.name);
+            });
+        }
+
+        function prepareFinaleScreen() {
+            document.getElementById('finaleTotalBallots').textContent = appState.ballots.length;
+            renderTop5Stage();
+            renderFullStandings();
+        }
+
+        function renderTop5Stage() {
+            const sorted = computeTalliedTeachers();
+            const top5 = sorted.slice(0, 5);
+            const stage = document.getElementById('top5StageGrid');
+
+            const fifthVotes = top5[4]?.votes ?? 0;
+            const sixthVotes = sorted[5]?.votes ?? -1;
+            const tieNote = document.getElementById('tieNoteText');
+            if (fifthVotes > 0 && fifthVotes === sixthVotes) {
+                const tiedNames = sorted.filter(t => t.votes === fifthVotes).map(t => t.name).join(', ');
+                tieNote.innerHTML = `<span class="text-amber-300 font-bold">⚡ Tie Alert at ${fifthVotes} vote(s):</span> ${escapeHtml(tiedNames)} are tied for the 5th prize spot!`;
+            } else {
+                tieNote.textContent = "* Rankings are ordered by total peer appreciation votes received.";
+            }
+
+            const podiumOrderIndices = [3, 1, 0, 2, 4];
+            const heights = ["lg:min-h-[260px]", "lg:min-h-[300px]", "lg:min-h-[355px]", "lg:min-h-[280px]", "lg:min-h-[240px]"];
+            const styles = ["podium-45", "podium-2", "podium-1", "podium-3", "podium-45"];
+            const medals = ["🏅", "🥈", "👑", "🥉", "🏅"];
+
+            stage.innerHTML = podiumOrderIndices.map((rankIdx, visualPos) => {
+                const teacher = top5[rankIdx];
+                if (!teacher) return '';
+                const rankNumber = rankIdx + 1;
+                const isRevealed = appState.revealedRankStep >= (6 - rankNumber);
+
+                if (!isRevealed) {
+                    return `
+                        <div class="rounded-3xl bg-white/10 border-2 border-dashed border-amber-300/30 p-5 flex flex-col items-center justify-center text-center min-h-[210px] ${heights[visualPos]} transition-all">
+                            <span class="text-3xl mb-2 opacity-60">🎁</span>
+                            <span class="font-display text-2xl font-bold text-amber-200/70">#${rankNumber}</span>
+                            <span class="text-xs uppercase tracking-widest text-amber-300/50 font-bold mt-1">Locked Prize</span>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="rounded-3xl ${styles[visualPos]} text-autumn-espresso p-5 shadow-2xl border-2 border-white/70 flex flex-col items-center justify-between text-center min-h-[220px] ${heights[visualPos]} animate-pop-in">
+                        <div class="w-full flex items-center justify-between">
+                            <span class="px-2.5 py-0.5 rounded-full bg-black/15 text-xs font-extrabold">#${rankNumber}</span>
+                            <span class="text-2xl">${medals[visualPos]}</span>
+                        </div>
+
+                        <div class="my-2">
+                            <div class="w-16 h-16 mx-auto rounded-2xl bg-white/85 shadow-md flex items-center justify-center text-4xl mb-2">
+                                ${teacher.avatar}
+                            </div>
+                            <h3 class="font-display text-xl sm:text-2xl font-bold leading-tight break-words">
+                                ${escapeHtml(teacher.name)}
+                            </h3>
+                            ${teacher.topSticker ? `
+                                <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded-full bg-white/65 text-[11px] font-extrabold text-autumn-espresso">
+                                    ${escapeHtml(teacher.topSticker)}
+                                </span>
+                            ` : ''}
+                        </div>
+
+                        <div class="w-full bg-white/80 backdrop-blur-sm rounded-2xl py-2 px-3 shadow-inner">
+                            <span class="font-display text-xl font-extrabold text-rose-800">${teacher.votes}</span>
+                            <span class="text-xs font-bold text-autumn-espresso/80 block">Appreciation Votes ❤️</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const btnText = document.getElementById('revealNextBtnText');
+            const fullStandingsBtn = document.getElementById('toggleFullStandingsBtn');
+
+            if (appState.revealedRankStep >= 5) {
+                btnText.textContent = "All 5 Winners Revealed! 🎉";
+                fullStandingsBtn.classList.remove('hidden');
+            } else {
+                const nextRankToReveal = 5 - appState.revealedRankStep;
+                btnText.textContent = `Reveal #${nextRankToReveal} Winner`;
+            }
+        }
+
+        window.revealNextRank = function() {
+            if (appState.revealedRankStep >= 5) {
+                triggerAutumnConfetti();
+                AudioEngine.playFanfare();
+                return;
+            }
+            appState.revealedRankStep += 1;
+            AudioEngine.playFanfare();
+            triggerAutumnConfetti();
+            renderTop5Stage();
+        };
+
+        window.revealAllWinners = function() {
+            appState.revealedRankStep = 5;
+            AudioEngine.playFanfare();
+            triggerAutumnConfetti();
+            renderTop5Stage();
+        };
+
+        window.toggleFullStandings = function() {
+            const box = document.getElementById('fullStandingsBox');
+            box.classList.toggle('hidden');
+            renderFullStandings();
+        };
+
+        function renderFullStandings() {
+            const sorted = computeTalliedTeachers();
+            const list = document.getElementById('fullStandingsList');
+            list.innerHTML = sorted.map((t, i) => `
+                <div class="flex items-center justify-between px-3.5 py-2.5 rounded-xl ${i < 5 ? 'bg-amber-400/20 border border-amber-400/40' : 'bg-white/5 border border-white/10'}">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-xs font-extrabold ${i < 5 ? 'text-amber-300' : 'text-white/50'} w-5">#${i + 1}</span>
+                        <span>${t.avatar}</span>
+                        <span class="text-sm font-bold text-white truncate">${escapeHtml(t.name)}</span>
+                    </div>
+                    <span class="text-xs font-extrabold text-amber-300 shrink-0">${t.votes} ❤️</span>
+                </div>
+            `).join('');
+        }
+
+        // --- 12. UTILITIES ---
+        window.toggleSound = function() {
+            appState.soundEnabled = !appState.soundEnabled;
+            document.getElementById('soundIcon').textContent = appState.soundEnabled ? '🔊' : '🔇';
+            if (appState.soundEnabled) AudioEngine.playSelect();
+        };
+
+        function triggerAutumnConfetti() {
+            if (typeof confetti !== 'function') return;
+            confetti({
+                particleCount: 75,
+                spread: 70,
+                origin: { y: 0.65 },
+                colors: ['#F59E0B', '#EA580C', '#9F1239', '#FDE68A', '#15803D']
+            });
+        }
+
+        let toastTimeout = null;
+        window.showToast = function(message, icon = "🍂") {
+            const banner = document.getElementById('toastBanner');
+            document.getElementById('toastText').textContent = message;
+            document.getElementById('toastIcon').textContent = icon;
+            banner.classList.remove('hidden');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => banner.classList.add('hidden'), 3200);
+        };
+
+        function openCustomDialog(title, message, onConfirm) {
+            document.getElementById('dialogTitle').textContent = title;
+            document.getElementById('dialogMessage').textContent = message;
+            document.getElementById('dialogConfirmBtn').onclick = () => {
+                closeCustomDialog();
+                if (onConfirm) onConfirm();
+            };
+            document.getElementById('customDialogModal').classList.remove('hidden');
+        }
+
+        window.closeCustomDialog = function() {
+            document.getElementById('customDialogModal').classList.add('hidden');
+        };
+
+        // Boot up
+        initApp();
+    </script>
+</body>
+</html>
