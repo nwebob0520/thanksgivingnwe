@@ -782,29 +782,35 @@
         <span id="toastText">Notification</span>
     </div>
 
-    <!-- ========================================================================= -->
-    <!-- FIREBASE REAL-TIME SYNC & APPLICATION LOGIC                               -->
-    <!-- ========================================================================= -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // --- 1. FIREBASE SETUP (WITH GRACEFUL LOCAL FALLBACK) ---
+        // --- 1. FIREBASE SETUP (WITH USER CONFIG FOR GITHUB PAGES) ---
         let app = null;
         let auth = null;
         let db = null;
         let useCloudSync = false;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'thanksgiving-we-love-you';
 
+        const USER_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDrfnSfx7IPuQDUcDa_vZPCPT6WLUSQ3JQ",
+            authDomain: "thanksgivingnwe-reply.firebaseapp.com",
+            projectId: "thanksgivingnwe-reply",
+            storageBucket: "thanksgivingnwe-reply.firebasestorage.app",
+            messagingSenderId: "187505572121",
+            appId: "1:187505572121:web:a54a40a0923e5e2d99ed88"
+        };
+
         try {
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                const firebaseConfig = JSON.parse(__firebase_config);
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                useCloudSync = true;
-            }
+            const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config)
+                ? JSON.parse(__firebase_config)
+                : USER_FIREBASE_CONFIG;
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            useCloudSync = true;
         } catch (err) {
             console.warn("Firebase config unavailable, running in local mode:", err);
             useCloudSync = false;
@@ -1045,6 +1051,13 @@
                 const newBallots = [];
                 snapshot.forEach((docSnap) => {
                     newBallots.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                // Sort ballots chronologically so the live feed stays in arrival order
+                newBallots.sort((a, b) => {
+                    const timeA = a.createdAt && typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() : 0;
+                    const timeB = b.createdAt && typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() : 0;
+                    return timeA - timeB;
                 });
 
                 const prevCount = appState.lastBallotCount;
@@ -2022,12 +2035,13 @@
             const heights = ["lg:min-h-[260px]", "lg:min-h-[300px]", "lg:min-h-[355px]", "lg:min-h-[280px]", "lg:min-h-[240px]"];
             const styles = ["podium-45", "podium-2", "podium-1", "podium-3", "podium-45"];
             const medals = ["🏅", "🥈", "👑", "🥉", "🏅"];
+            const maxRanks = Math.min(5, top5.length);
 
             stage.innerHTML = podiumOrderIndices.map((rankIdx, visualPos) => {
                 const teacher = top5[rankIdx];
                 if (!teacher) return '';
                 const rankNumber = rankIdx + 1;
-                const isRevealed = appState.revealedRankStep >= (6 - rankNumber);
+                const isRevealed = appState.revealedRankStep >= (maxRanks + 1 - rankNumber);
 
                 if (!isRevealed) {
                     return `
@@ -2071,22 +2085,30 @@
             const btnText = document.getElementById('revealNextBtnText');
             const fullStandingsBtn = document.getElementById('toggleFullStandingsBtn');
 
-            if (appState.revealedRankStep >= 5) {
-                btnText.textContent = "All 5 Winners Revealed! 🎉";
+            if (maxRanks === 0 || appState.revealedRankStep >= maxRanks) {
+                btnText.textContent = `All ${maxRanks} Winners Revealed! 🎉`;
                 fullStandingsBtn.classList.remove('hidden');
             } else {
-                const nextRankToReveal = 5 - appState.revealedRankStep;
+                const nextRankToReveal = maxRanks - appState.revealedRankStep;
                 btnText.textContent = `Reveal #${nextRankToReveal} Winner`;
             }
         }
 
         window.revealNextRank = function() {
-            if (appState.revealedRankStep >= 5) {
+            const maxRanks = Math.min(5, computeTalliedTeachers().length);
+            if (appState.revealedRankStep >= maxRanks) {
                 triggerAutumnConfetti();
                 AudioEngine.playFanfare();
                 return;
             }
             appState.revealedRankStep += 1;
+            AudioEngine.playFanfare();
+            triggerAutumnConfetti();
+            renderTop5Stage();
+        };
+
+        window.revealAllWinners = function() {
+            appState.revealedRankStep = Math.min(5, computeTalliedTeachers().length);
             AudioEngine.playFanfare();
             triggerAutumnConfetti();
             renderTop5Stage();
