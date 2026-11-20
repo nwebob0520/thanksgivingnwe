@@ -41,6 +41,7 @@
                         'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'pop-in': 'popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
                         'bump': 'bump 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        'marquee-blink': 'marqueeBlink 1.2s ease-in-out infinite alternate',
                     },
                     keyframes: {
                         float: {
@@ -59,6 +60,10 @@
                             '0%': { transform: 'scale(1)' },
                             '40%': { transform: 'scale(1.18)' },
                             '100%': { transform: 'scale(1)' },
+                        },
+                        marqueeBlink: {
+                            '0%': { opacity: '0.35', transform: 'scale(0.9)' },
+                            '100%': { opacity: '1', transform: 'scale(1.15)' },
                         }
                     }
                 }
@@ -69,7 +74,7 @@
     <style>
         body {
             background-color: #FFFBF5;
-            background-image: 
+            background-image:
                 radial-gradient(at 0% 0%, rgba(251, 191, 36, 0.16) 0px, transparent 50%),
                 radial-gradient(at 100% 0%, rgba(234, 88, 12, 0.14) 0px, transparent 50%),
                 radial-gradient(at 100% 100%, rgba(159, 18, 57, 0.10) 0px, transparent 50%),
@@ -102,27 +107,40 @@
             filter: grayscale(20%);
         }
 
-        /* Lucky Draw Tile Highlight */
+        /* Fancy Golden Gala Lucky Draw Stage */
+        .gala-stage {
+            background: radial-gradient(circle at 50% 0%, #4C1D24 0%, #1F1114 60%, #12090B 100%);
+        }
+        .gold-shimmer {
+            background: linear-gradient(90deg, #FDE68A 0%, #F59E0B 30%, #FFFBEB 50%, #F59E0B 70%, #FDE68A 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmerText 3.2s linear infinite;
+        }
+        @keyframes shimmerText {
+            to { background-position: 200% center; }
+        }
         .draw-tile {
-            transition: transform 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+            transition: transform 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
         }
         .draw-tile.active-spotlight {
-            background: linear-gradient(135deg, #F59E0B, #EA580C);
-            color: #FFFFFF;
-            transform: scale(1.08);
-            box-shadow: 0 10px 25px rgba(234, 88, 12, 0.55), 0 0 0 4px #FDE68A;
+            background: linear-gradient(135deg, #FDE68A 0%, #F59E0B 45%, #EA580C 100%);
+            color: #2D1A12;
+            transform: scale(1.09);
+            box-shadow: 0 0 28px rgba(251, 191, 36, 0.85), 0 0 0 3px #FFFBEB;
             z-index: 10;
-            border-color: #FFFFFF;
+            border-color: #FFFBEB;
         }
         .draw-tile.drawn-already {
-            opacity: 0.45;
-            background-color: #F3E8D8;
+            opacity: 0.35;
+            filter: grayscale(70%);
             text-decoration: line-through;
         }
 
         /* Podium metallic gradients */
-        .podium-1 { background: linear-gradient(180deg, #FDE68A 0%, #F59E0B 45%, #B45309 100%); }
-        .podium-2 { background: linear-gradient(180deg, #F3F4F6 0%, #D1D5DB 45%, #6B7280 100%); }
+        .podium-1 { background: linear-gradient(180deg, #FEF08A 0%, #F59E0B 50%, #B45309 100%); }
+        .podium-2 { background: linear-gradient(180deg, #F8FAFC 0%, #CBD5E1 50%, #64748B 100%); }
         .podium-3 { background: linear-gradient(180deg, #FED7AA 0%, #D97706 50%, #78350F 100%); }
         .podium-45 { background: linear-gradient(180deg, #FFE4E6 0%, #E11D48 55%, #881337 100%); }
 
@@ -260,7 +278,7 @@
                                 Add Attending Teacher
                             </label>
                             <div class="flex gap-2">
-                                <input type="text" id="newTeacherInput" placeholder="e.g., Teacher Karen or Mr. Lee..." 
+                                <input type="text" id="newTeacherInput" placeholder="e.g., Teacher Karen or Mr. Lee..."
                                     class="w-full px-4 py-3 rounded-xl border-2 border-amber-300 bg-white text-autumn-espresso font-semibold focus:outline-none focus:border-orange-500 transition-colors"
                                     onkeydown="if(event.key === 'Enter') addSingleTeacher()">
                                 <button onclick="addSingleTeacher()" class="px-5 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 active:scale-95 text-white font-bold shadow-sm transition-all shrink-0">
@@ -338,7 +356,7 @@
         <!-- ===================================================================== -->
         <section id="host-screen-dashboard" class="hidden space-y-6 animate-pop-in">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                
+
                 <!-- Left 5 Cols: Giant Scannable QR Code Card -->
                 <div class="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-amber-200 flex flex-col items-center justify-between text-center space-y-5">
                     <div class="space-y-1.5">
@@ -358,16 +376,16 @@
                         <div id="qrcodeContainer" class="bg-white p-3 rounded-2xl shadow-sm flex items-center justify-center min-w-[210px] min-h-[210px]"></div>
                     </div>
 
-                    <!-- Preview / Localhost Warning Banner (Shown only when running in a private preview or local file) -->
+                    <!-- Preview / Localhost Warning Banner -->
                     <div id="qrPreviewNotice" class="hidden w-full text-left bg-amber-50 border border-amber-300 rounded-2xl p-3.5 text-xs text-amber-950 space-y-2">
                         <div class="font-extrabold text-orange-800 flex items-center gap-1.5">
                             <span>⚠️</span> <span>Preview Mode Detected</span>
                         </div>
                         <p class="leading-relaxed text-amber-900/85">
-                            Phones cannot open a private preview link directly. To let teachers scan with their phones, host this single HTML file (e.g., on <strong>Netlify Drop</strong> or <strong>GitHub Pages</strong>) and paste its public URL below—or use <strong>📲 Test Phone View</strong> right now!
+                            Phones cannot open a private preview link directly. Host this HTML file on <strong>GitHub Pages</strong> or <strong>Netlify Drop</strong> and paste its URL below—or click <strong>📲 Test Phone View</strong> to test right now!
                         </p>
                         <div class="flex gap-1.5 pt-1">
-                            <input type="url" id="customBaseUrlInput" placeholder="https://your-site.netlify.app"
+                            <input type="url" id="customBaseUrlInput" placeholder="https://yourname.github.io/we-love-you/"
                                 class="w-full px-2.5 py-1.5 rounded-lg border border-amber-300 bg-white text-xs font-mono focus:outline-none focus:border-orange-500"
                                 onkeydown="if(event.key === 'Enter') applyCustomBaseUrl()">
                             <button onclick="applyCustomBaseUrl()" class="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shrink-0">
@@ -417,7 +435,7 @@
                             Waiting for the first phone ballot to arrive... 🦃
                         </p>
 
-                        <!-- Visual Participation Progress Bar (Ballots vs Attending Teachers) -->
+                        <!-- Visual Participation Progress Bar -->
                         <div class="max-w-md mx-auto pt-2">
                             <div class="flex justify-between text-xs font-bold text-amber-900/70 mb-1">
                                 <span>Room Participation</span>
@@ -429,7 +447,7 @@
                         </div>
                     </div>
 
-                    <!-- Live Anonymous Activity Ticker (Shows ONLY generic pulse, NEVER who got voted for!) -->
+                    <!-- Live Anonymous Activity Ticker -->
                     <div class="bg-stone-50 rounded-2xl p-4 border border-stone-200">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-xs font-extrabold uppercase tracking-wider text-stone-500">Live Ballot Feed (Anonymous)</span>
@@ -440,11 +458,11 @@
                         </div>
                     </div>
 
-                    <!-- Host Action Buttons -->
+                    <!-- Host Action Buttons (Separated from Lucky Draw) -->
                     <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-amber-100">
-                        <button onclick="switchHostScreen('luckydraw')" class="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 font-display text-base font-bold transition-all flex items-center justify-center gap-2">
-                            <span>🎰</span>
-                            <span>Play Lucky Draw While Waiting</span>
+                        <button onclick="openPhonePreviewModal()" class="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 font-display text-base font-bold transition-all flex items-center justify-center gap-2">
+                            <span>📲</span>
+                            <span>Open Kiosk / Test Phone</span>
                         </button>
 
                         <button onclick="closeVotingAndGoToFinale()" class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-700 to-autumn-espresso hover:from-rose-600 hover:to-rose-950 text-white font-display text-base sm:text-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2">
@@ -457,37 +475,59 @@
         </section>
 
         <!-- ===================================================================== -->
-        <!-- HOST SCREEN 3: THANKSGIVING LUCKY DRAW                                -->
+        <!-- HOST SCREEN 3: FANCY GOLDEN GALA LUCKY DRAW (SEPARATE SESSION)        -->
         <!-- ===================================================================== -->
         <section id="host-screen-luckydraw" class="hidden space-y-6 animate-pop-in">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Left 8 Cols: Interactive Spotlight Draw Arena -->
-                <div class="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-amber-200 flex flex-col justify-between space-y-6">
-                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-amber-100 pb-4">
+                <!-- Left 8 Cols: Golden Gala Stage -->
+                <div class="lg:col-span-8 gala-stage text-white rounded-3xl p-6 sm:p-8 shadow-2xl border-2 border-amber-400/60 flex flex-col justify-between space-y-6 relative overflow-hidden">
+                    <!-- Decorative Top Marquee Lights -->
+                    <div class="flex justify-between items-center px-2 opacity-90 select-none" aria-hidden="true">
+                        <span class="w-3 h-3 rounded-full bg-amber-300 shadow-[0_0_12px_#FDE68A] animate-marquee-blink" style="animation-delay: 0s;"></span>
+                        <span class="w-3 h-3 rounded-full bg-orange-400 shadow-[0_0_12px_#FB923C] animate-marquee-blink" style="animation-delay: 0.2s;"></span>
+                        <span class="w-3 h-3 rounded-full bg-amber-200 shadow-[0_0_12px_#FEF08A] animate-marquee-blink" style="animation-delay: 0.4s;"></span>
+                        <span class="w-3 h-3 rounded-full bg-rose-400 shadow-[0_0_12px_#FB7185] animate-marquee-blink" style="animation-delay: 0.6s;"></span>
+                        <span class="w-3 h-3 rounded-full bg-amber-300 shadow-[0_0_12px_#FDE68A] animate-marquee-blink" style="animation-delay: 0.8s;"></span>
+                        <span class="w-3 h-3 rounded-full bg-orange-400 shadow-[0_0_12px_#FB923C] animate-marquee-blink" style="animation-delay: 1.0s;"></span>
+                        <span class="w-3 h-3 rounded-full bg-amber-200 shadow-[0_0_12px_#FEF08A] animate-marquee-blink" style="animation-delay: 0.3s;"></span>
+                        <span class="w-3 h-3 rounded-full bg-rose-400 shadow-[0_0_12px_#FB7185] animate-marquee-blink" style="animation-delay: 0.7s;"></span>
+                    </div>
+
+                    <!-- Stage Header & Prize Title Input -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-amber-400/20 pb-4">
                         <div>
-                            <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-extrabold uppercase tracking-wider">
-                                🎁 Bonus Side Activity
+                            <span class="px-3 py-1 rounded-full bg-amber-400/20 border border-amber-300/40 text-amber-200 text-xs font-extrabold uppercase tracking-widest">
+                                ✨ Grand Lucky Draw Session ✨
                             </span>
-                            <h2 class="font-display text-2xl sm:text-3xl font-bold text-autumn-espresso mt-1">
-                                Thanksgiving Harvest Lucky Draw
+                            <h2 class="font-display text-3xl sm:text-4xl font-bold gold-shimmer mt-1.5">
+                                Golden Harvest Spotlight
                             </h2>
                         </div>
-                        <div class="text-right">
-                            <span class="text-xs font-bold text-amber-800 block">Eligible Pool</span>
-                            <span id="eligiblePoolCount" class="font-display text-2xl font-bold text-orange-600">12 Teachers</span>
+                        <div class="text-right bg-white/5 px-4 py-2 rounded-2xl border border-amber-300/20">
+                            <span class="text-[11px] uppercase tracking-wider font-bold text-amber-200/70 block">Eligible Pool</span>
+                            <span id="eligiblePoolCount" class="font-display text-2xl font-bold text-amber-300">12 Teachers</span>
                         </div>
                     </div>
 
-                    <!-- Spotlight Winner Banner -->
-                    <div id="luckyWinnerBanner" class="bg-gradient-to-r from-amber-100 via-orange-100 to-rose-100 border-2 border-amber-300 rounded-2xl p-5 text-center transition-all">
-                        <p id="luckyStatusSubtitle" class="text-xs sm:text-sm font-bold uppercase tracking-widest text-orange-800">
-                            Ready to spin the Thanksgiving spotlight!
+                    <!-- Optional Prize Label Input -->
+                    <div class="flex flex-col sm:flex-row items-center gap-3 bg-white/5 p-3.5 rounded-2xl border border-amber-300/20">
+                        <label for="luckyPrizeInput" class="text-xs font-extrabold uppercase tracking-wider text-amber-200 shrink-0">
+                            🎁 Drawing For:
+                        </label>
+                        <input type="text" id="luckyPrizeInput" placeholder="e.g., Starbucks Gift Card, Special Treat, Mystery Box..."
+                            class="w-full px-3.5 py-2 rounded-xl bg-black/40 border border-amber-400/30 text-amber-100 placeholder-amber-200/40 text-sm font-semibold focus:outline-none focus:border-amber-300">
+                    </div>
+
+                    <!-- Dramatic Spotlight Stage Banner -->
+                    <div id="luckyWinnerBanner" class="bg-gradient-to-b from-amber-500/20 via-orange-600/15 to-black/50 border-2 border-amber-400/60 rounded-3xl p-6 sm:p-8 text-center shadow-inner relative overflow-hidden">
+                        <p id="luckyStatusSubtitle" class="text-xs sm:text-sm font-extrabold uppercase tracking-[0.2em] text-amber-300">
+                            ✨ Step Right Up · Ready to Spin ✨
                         </p>
-                        <div id="luckySpotlightName" class="font-display text-3xl sm:text-5xl font-bold text-autumn-espresso my-2 tracking-tight">
-                            🦃 Who’s Next? 🦃
+                        <div id="luckySpotlightName" class="font-display text-4xl sm:text-6xl font-bold text-white my-3 tracking-tight drop-shadow-[0_4px_16px_rgba(251,191,36,0.45)]">
+                            👑 Who’s Our Winner? 👑
                         </div>
-                        <p id="luckyWinnerMessage" class="text-xs sm:text-sm text-amber-900/80 font-medium">
-                            Click the big button below to randomly select an attending teacher!
+                        <p id="luckyWinnerMessage" class="text-xs sm:text-sm text-amber-100/80 font-medium">
+                            Press the Golden Spin button below to ignite the spotlight!
                         </p>
                     </div>
 
@@ -497,34 +537,34 @@
                     </div>
 
                     <!-- Spin Controls -->
-                    <div class="pt-4 border-t border-amber-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="pt-4 border-t border-amber-400/20 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <label class="flex items-center gap-2.5 cursor-pointer select-none">
-                            <input type="checkbox" id="removeWinnerCheckbox" checked class="w-5 h-5 rounded text-orange-600 focus:ring-orange-500 border-amber-400">
-                            <span class="text-sm font-bold text-autumn-espresso">Remove winner from next draw</span>
+                            <input type="checkbox" id="removeWinnerCheckbox" checked class="w-5 h-5 rounded accent-amber-500">
+                            <span class="text-sm font-bold text-amber-100">Remove winner from next draw</span>
                         </label>
 
-                        <button onclick="startLuckyDraw()" id="spinDrawBtn" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-700 hover:from-amber-400 hover:to-rose-600 active:scale-95 text-white font-display text-xl font-bold shadow-lg shadow-orange-600/30 transition-all flex items-center justify-center gap-2.5">
+                        <button onclick="startLuckyDraw()" id="spinDrawBtn" class="w-full sm:w-auto px-9 py-4 rounded-2xl bg-gradient-to-r from-amber-300 via-amber-500 to-orange-500 hover:from-amber-200 hover:to-orange-400 active:scale-95 text-autumn-espresso font-display text-xl font-extrabold shadow-[0_0_30px_rgba(245,158,11,0.45)] transition-all flex items-center justify-center gap-2.5">
                             <span>🎰</span>
-                            <span>Draw a Lucky Winner!</span>
+                            <span>SPIN THE SPOTLIGHT!</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Right 4 Cols: Lucky Draw Winners History -->
+                <!-- Right 4 Cols: Lucky Hall of Fame -->
                 <div class="lg:col-span-4 bg-white rounded-3xl p-6 shadow-xl border-2 border-amber-200 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between border-b border-amber-100 pb-4 mb-4">
                             <h3 class="font-display text-xl font-bold text-autumn-espresso flex items-center gap-2">
-                                <span>🎉</span> Lucky Winners
+                                <span>👑</span> Lucky Hall of Fame
                             </h3>
                             <button onclick="resetLuckyDrawPool()" class="text-xs font-bold text-orange-700 hover:text-orange-900 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-xl border border-orange-200 transition-colors">
                                 ↺ Reset Pool
                             </button>
                         </div>
 
-                        <div id="luckyWinnersHistoryList" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
+                        <div id="luckyWinnersHistoryList" class="space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
                             <div class="text-center py-12 text-amber-900/50 text-sm font-medium">
-                                No lucky winners drawn yet.<br>Spin the draw to award prizes! 🥧
+                                No lucky winners drawn yet.<br>Spin the spotlight to crown a winner! ✨
                             </div>
                         </div>
                     </div>
@@ -540,28 +580,53 @@
         <!-- HOST SCREEN 4: GRAND FINALE — TOP 5 WINNERS PODIUM REVEAL             -->
         <!-- ===================================================================== -->
         <section id="host-screen-finale" class="hidden space-y-6 animate-pop-in">
-            <div class="bg-gradient-to-br from-autumn-espresso via-rose-950 to-amber-950 text-white rounded-3xl p-6 sm:p-10 shadow-2xl border-2 border-amber-400/50 relative overflow-hidden">
+            <div class="bg-gradient-to-br from-autumn-espresso via-rose-950 to-amber-950 text-white rounded-3xl p-6 sm:p-10 shadow-2xl border-2 border-amber-400/60 relative overflow-hidden">
                 <!-- Header -->
                 <div class="relative z-10 text-center max-w-2xl mx-auto space-y-2">
                     <span class="inline-block px-3.5 py-1 rounded-full bg-amber-400/20 border border-amber-300/40 text-amber-300 text-xs font-extrabold uppercase tracking-widest">
                         🏆 Thanksgiving Grand Finale 🏆
                     </span>
-                    <h2 class="font-display text-3xl sm:text-5xl font-bold tracking-tight text-amber-100">
+                    <h2 class="font-display text-3xl sm:text-5xl font-bold tracking-tight gold-shimmer">
                         Top 5 Most Appreciated Teachers!
                     </h2>
-                    <p class="text-amber-200/80 text-sm sm:text-base">
-                        Out of <strong id="finaleTotalBallots" class="text-white">0</strong> anonymous phone ballots cast today, here are our 5 special prize winners!
+                    <p class="text-amber-200/85 text-sm sm:text-base">
+                        Out of <strong id="finaleTotalBallots" class="text-white">0</strong> anonymous ballots cast today, let’s celebrate our 5 special prize winners!
                     </p>
                 </div>
 
-                <!-- Reveal Controls -->
-                <div class="relative z-10 flex flex-wrap items-center justify-center gap-3 mt-6">
-                    <button onclick="revealNextRank()" id="revealNextBtn" class="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-autumn-espresso font-display text-lg font-bold shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                <!-- Live Drumroll Suspense Banner (Appears briefly before each reveal) -->
+                <div id="finaleDrumrollBanner" class="hidden relative z-10 max-w-xl mx-auto mt-5 bg-amber-400/20 border-2 border-amber-300 rounded-2xl py-3 px-5 text-center animate-pulse">
+                    <span id="finaleDrumrollText" class="font-display text-xl sm:text-2xl font-bold text-amber-200">
+                        🥁 Drumroll please... Revealing #5 Winner! 🥁
+                    </span>
+                </div>
+
+                <!-- Reveal, Hype & Hide/Undo Controls -->
+                <div class="relative z-10 flex flex-wrap items-center justify-center gap-2.5 mt-6">
+                    <button onclick="revealNextRank()" id="revealNextBtn" class="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 hover:from-amber-200 hover:to-orange-400 text-autumn-espresso font-display text-lg font-extrabold shadow-lg transition-all active:scale-95 flex items-center gap-2">
                         <span>✨</span>
                         <span id="revealNextBtnText">Reveal #5 Winner</span>
                     </button>
-                    <button onclick="revealAllWinners()" id="revealAllBtn" class="px-5 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 text-amber-100 border border-amber-300/30 font-bold text-sm transition-all">
-                        Reveal All 5 at Once
+
+                    <button onclick="revealAllWinners()" id="revealAllBtn" class="px-4 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 text-amber-100 border border-amber-300/30 font-bold text-xs sm:text-sm transition-all">
+                        ⚡ Reveal All
+                    </button>
+
+                    <!-- Accidental-Click Undo / Hide Back Controls -->
+                    <button onclick="hideLastRevealed()" id="hideLastBtn" class="px-4 py-3.5 rounded-2xl bg-rose-900/70 hover:bg-rose-800 text-rose-100 border border-rose-400/40 font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5" title="Hide the last revealed winner back into the box">
+                        <span>↩️</span> <span>Hide Last</span>
+                    </button>
+
+                    <button onclick="hideAllWinners()" id="hideAllBtn" class="px-4 py-3.5 rounded-2xl bg-black/35 hover:bg-black/55 text-amber-200 border border-white/20 font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5" title="Lock all 5 winners back into mystery boxes">
+                        <span>🙈</span> <span>Hide All</span>
+                    </button>
+
+                    <!-- Fun Crowd Hype Buttons -->
+                    <button onclick="playHypeDrumroll()" class="px-3.5 py-3.5 rounded-2xl bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border border-amber-400/30 font-bold text-xs sm:text-sm transition-all" title="Play a fun drumroll sound">
+                        🥁 Drumroll
+                    </button>
+                    <button onclick="triggerFireworks()" class="px-3.5 py-3.5 rounded-2xl bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border border-amber-400/30 font-bold text-xs sm:text-sm transition-all" title="Launch celebratory fireworks">
+                        🎉 Confetti
                     </button>
                 </div>
 
@@ -573,7 +638,7 @@
                 <!-- Tie-breaker / Full Leaderboard Toggle -->
                 <div class="relative z-10 mt-8 pt-6 border-t border-white/15 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <p id="tieNoteText" class="text-xs text-amber-200/80 italic">
-                        * Rankings are ordered by total peer appreciation votes received.
+                        * Tip: Click any locked box to reveal it directly, or click 🙈 on any card to hide it back!
                     </p>
                     <button onclick="toggleFullStandings()" id="toggleFullStandingsBtn" class="hidden px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-amber-200 border border-white/20 transition-colors">
                         📊 Show Full Standings
@@ -625,7 +690,7 @@
                         Thank You! Your anonymous votes are locked in 🍂
                     </h2>
                     <p class="text-sm text-amber-900/80 font-medium leading-relaxed">
-                        Your appreciation has been secretly added to the Thanksgiving tally. Watch the big screen for the Lucky Draw and Top 5 Finale Reveal!
+                        Your appreciation has been secretly added to the Thanksgiving tally. Watch the big screen for the Top 5 Finale Reveal!
                     </p>
                 </div>
                 <div class="bg-amber-50 rounded-2xl p-4 border border-amber-200 text-xs text-amber-900/75 font-semibold">
@@ -701,7 +766,6 @@
     <!-- ========================================================================= -->
     <div id="phonePreviewModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
         <div class="bg-autumn-cream rounded-[2.25rem] max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border-4 border-autumn-espresso overflow-hidden animate-pop-in">
-            <!-- Phone Mockup Header -->
             <div class="bg-autumn-espresso text-white px-5 py-3.5 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="text-lg">📱</span>
@@ -715,12 +779,10 @@
                 </button>
             </div>
 
-            <!-- Interactive In-App Phone Voter Body -->
             <div id="previewPhoneBody" class="flex-1 overflow-y-auto p-4 space-y-3.5">
                 <!-- Rendered dynamically via JS -->
             </div>
 
-            <!-- Sticky Modal Footer for Selection & Submit -->
             <div id="previewPhoneFooter" class="bg-autumn-espresso text-white p-3.5 border-t border-amber-400/30 space-y-2 shrink-0">
                 <div class="flex items-center justify-center gap-2 text-xs font-bold">
                     <span id="previewSlot1" class="px-2.5 py-1 rounded-lg bg-white/10 text-amber-200 truncate max-w-[44%]">1️⃣ Pick 1st</span>
@@ -783,11 +845,11 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 1. FIREBASE SETUP (WITH USER CONFIG FOR GITHUB PAGES) ---
+        // --- 1. FIREBASE SETUP (WITH YOUR CONFIG FOR GITHUB PAGES) ---
         let app = null;
         let auth = null;
         let db = null;
@@ -818,8 +880,8 @@
 
         // --- 2. CONSTANTS & STATE ---
         const DEFAULT_TEACHERS = [
-            "Teacher Karen", "Bob", "Sarah", "Michael", 
-            "Jessica", "David", "Emily", "Kevin", 
+            "Teacher Karen", "Bob", "Sarah", "Michael",
+            "Jessica", "David", "Emily", "Kevin",
             "Rachel", "Daniel", "Olivia", "Mr. Thompson"
         ];
         const AVATAR_EMOJIS = ["🦉", "🦊", "🐻", "🦔", "🐿️", "🦌", "🦃", "🌻", "🍁", "🍎", "🥧", "🧣", "☕", "🌟", "🐝", "🦋"];
@@ -835,20 +897,22 @@
         const paramSessionId = urlParams.get('session');
 
         const appState = {
-            mode: paramSessionId ? 'voter' : 'host', // 'host' or 'voter'
+            mode: paramSessionId ? 'voter' : 'host',
             sessionId: paramSessionId || generateSessionCode(),
             user: null,
             sessionData: {
-                status: 'setup', // 'setup' | 'voting' | 'closed'
-                teachers: [], // { id, name, avatar }
+                status: 'setup',
+                teachers: [],
             },
-            ballots: [], // Array of { choices: [id1, id2], sticker: string, createdAt }
+            ballots: [],
             // Host local state
             draftTeachers: [],
             drawnWinnerIds: [],
             luckyHistory: [],
             isSpinning: false,
-            revealedRankStep: 0,
+            isRevealing: false,
+            revealedRanks: new Set(), // Tracks revealed ranks (1..5) individually so any can be hidden back
+            revealHistoryOrder: [],   // Stack of revealed rank numbers for "Hide Last" undo
             soundEnabled: true,
             lastBallotCount: 0,
             customBaseUrl: '',
@@ -860,6 +924,7 @@
             // Voter phone local state
             selectedIds: [],
             selectedSticker: VIBE_STICKERS[0],
+            votedSessions: new Set(),
             hasVotedLocally: false
         };
 
@@ -912,12 +977,20 @@
                 this.playTone(1046.5, 0.18, 'sine', 0.09, 0.07);
             },
             playTick(step) {
-                const pitch = 300 + (step % 6) * 45;
-                this.playTone(pitch, 0.05, 'square', 0.05);
+                const pitch = 320 + (step % 8) * 42;
+                this.playTone(pitch, 0.05, 'triangle', 0.07);
+            },
+            playDrumroll(durationMs = 900) {
+                if (!appState.soundEnabled) return;
+                const hits = Math.floor(durationMs / 65);
+                for (let i = 0; i < hits; i++) {
+                    const freq = 135 + (i % 2) * 28 + (i / hits) * 45;
+                    this.playTone(freq, 0.05, 'triangle', 0.09 + (i / hits) * 0.06, i * 0.062);
+                }
             },
             playFanfare() {
-                const chord = [523.25, 659.25, 783.99, 1046.5, 1318.5];
-                chord.forEach((n, i) => this.playTone(n, 0.35, 'triangle', 0.14, i * 0.07));
+                const chord = [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98];
+                chord.forEach((n, i) => this.playTone(n, 0.4, 'triangle', 0.14, i * 0.065));
             }
         };
 
@@ -944,12 +1017,10 @@
             };
         }
 
-        // Valid 6-segment document path: artifacts/{appId}/public/data/sessions/{sessionId}
         function getSessionDocRef() {
             return doc(db, 'artifacts', appId, 'public', 'data', 'sessions', appState.sessionId);
         }
 
-        // Valid 7-segment collection path: artifacts/{appId}/public/data/sessions/{sessionId}/ballots
         function getBallotsColRef() {
             return collection(db, 'artifacts', appId, 'public', 'data', 'sessions', appState.sessionId, 'ballots');
         }
@@ -986,7 +1057,6 @@
                 resetSampleRoster(false);
                 document.getElementById('host-screen-setup').classList.remove('hidden');
 
-                // Initialize session document in Firestore
                 if (useCloudSync && appState.user) {
                     try {
                         await setDoc(getSessionDocRef(), {
@@ -1001,10 +1071,7 @@
             } else {
                 document.getElementById('modeBadge').textContent = 'Voter Phone View';
                 document.getElementById('modeBadge').className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
-                // Check if this browser already voted in this session
-                if (localStorage.getItem(`voted_${appState.sessionId}`) === '1') {
-                    appState.hasVotedLocally = true;
-                }
+                appState.hasVotedLocally = appState.votedSessions.has(appState.sessionId);
                 renderStickerPicker();
             }
 
@@ -1022,7 +1089,6 @@
             if (unsubscribeSession) unsubscribeSession();
             if (unsubscribeBallots) unsubscribeBallots();
 
-            // Listen to Session Metadata (status & teacher list)
             unsubscribeSession = onSnapshot(getSessionDocRef(), (snap) => {
                 if (snap.exists()) {
                     const data = snap.data();
@@ -1046,14 +1112,12 @@
                 console.error("Session snapshot error:", err);
             });
 
-            // Listen to Real-Time Anonymous Ballots Collection
             unsubscribeBallots = onSnapshot(getBallotsColRef(), (snapshot) => {
                 const newBallots = [];
                 snapshot.forEach((docSnap) => {
                     newBallots.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                // Sort ballots chronologically so the live feed stays in arrival order
                 newBallots.sort((a, b) => {
                     const timeA = a.createdAt && typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() : 0;
                     const timeB = b.createdAt && typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() : 0;
@@ -1224,7 +1288,6 @@
             AudioEngine.playFanfare();
             triggerAutumnConfetti();
 
-            // Reveal host navigation & controls
             document.getElementById('hostNavTabs').classList.remove('hidden');
             document.getElementById('hostNavTabs').classList.add('flex');
             document.getElementById('testPhoneBtn').classList.remove('hidden');
@@ -1253,7 +1316,6 @@
             });
             document.getElementById(`host-screen-${screenName}`).classList.remove('hidden');
 
-            // Update active tab styling
             ['dashboard', 'luckydraw', 'finale'].forEach(tab => {
                 const el = document.getElementById(`tab-${tab}`);
                 if (!el) return;
@@ -1348,7 +1410,6 @@
                         colorLight: "#FFFFFF",
                         correctLevel: QRCode.CorrectLevel.L
                     });
-                    showToast("URL was too long for QR—showing Room Code QR instead. Paste a shorter hosted URL below!", "⚠️");
                 } catch (e2) {
                     qrContainer.innerHTML = `<div class="text-xs font-bold text-amber-900 p-4 text-center">Room Code:<br><span class="font-mono text-lg text-orange-700">${escapeHtml(appState.sessionId)}</span></div>`;
                 }
@@ -1374,7 +1435,7 @@
                 AudioEngine.playSelect();
                 showToast("QR Code updated with your public URL!", "✅");
             } catch (e) {
-                showToast("Please enter a valid web address (e.g., https://mysite.netlify.app)", "⚠️");
+                showToast("Please enter a valid web address (e.g., https://yourname.github.io/we-love-you/)", "⚠️");
             }
         };
 
@@ -1435,7 +1496,6 @@
                 }
             }
 
-            // Update open/closed badge
             const dot = document.getElementById('votingStatusDot');
             const heading = document.getElementById('votingStatusHeading');
             if (appState.sessionData.status === 'closed') {
@@ -1658,13 +1718,12 @@
             appState.mode = 'voter';
             appState.sessionId = code;
             appState.selectedIds = [];
-            appState.hasVotedLocally = localStorage.getItem(`voted_${code}`) === '1';
+            appState.hasVotedLocally = appState.votedSessions.has(code);
 
             document.getElementById('headerSessionCode').textContent = code;
             document.getElementById('modeBadge').textContent = 'Voter Phone View';
             document.getElementById('modeBadge').className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
 
-            // Hide host UI & show voter UI
             ['setup', 'dashboard', 'luckydraw', 'finale'].forEach(s => {
                 document.getElementById(`host-screen-${s}`).classList.add('hidden');
             });
@@ -1823,7 +1882,7 @@
                     });
                 }
 
-                localStorage.setItem(`voted_${appState.sessionId}`, '1');
+                appState.votedSessions.add(appState.sessionId);
                 appState.hasVotedLocally = true;
                 AudioEngine.playVoteSuccess();
                 triggerAutumnConfetti();
@@ -1836,7 +1895,7 @@
             }
         };
 
-        // --- 10. THANKSGIVING LUCKY DRAW (HOST VIEW) ---
+        // --- 10. FANCY GOLDEN GALA LUCKY DRAW (HOST VIEW) ---
         function getEligibleDrawTeachers() {
             const teachers = (appState.sessionData.teachers && appState.sessionData.teachers.length > 0)
                 ? appState.sessionData.teachers
@@ -1858,7 +1917,7 @@
                 const isAlreadyDrawn = appState.drawnWinnerIds.includes(t.id);
                 const isSpotlight = t.id === highlightedId;
                 return `
-                    <div class="draw-tile p-3 rounded-2xl border-2 border-amber-200 bg-amber-50/70 flex items-center gap-2.5 ${isSpotlight ? 'active-spotlight' : ''} ${isAlreadyDrawn && !isSpotlight ? 'drawn-already' : ''}">
+                    <div class="draw-tile p-3 rounded-2xl border border-amber-400/30 bg-white/10 text-amber-50 flex items-center gap-2.5 ${isSpotlight ? 'active-spotlight' : ''} ${isAlreadyDrawn && !isSpotlight ? 'drawn-already' : ''}">
                         <span class="text-xl shrink-0">${t.avatar}</span>
                         <span class="font-bold text-sm truncate">${escapeHtml(t.name)}</span>
                     </div>
@@ -1879,12 +1938,15 @@
             spinBtn.disabled = true;
             spinBtn.classList.add('opacity-60');
 
-            document.getElementById('luckyStatusSubtitle').textContent = "🥁 Drumroll please... Picking a lucky teacher! 🥁";
-            document.getElementById('luckyWinnerMessage').textContent = "Good luck everyone!";
+            const prizeName = (document.getElementById('luckyPrizeInput')?.value || '').trim();
+            document.getElementById('luckyStatusSubtitle').textContent = prizeName
+                ? `🥁 SPINNING FOR: ${prizeName.toUpperCase()} 🥁`
+                : "🥁 DRUMROLL PLEASE · SPINNING THE GOLDEN SPOTLIGHT 🥁";
+            document.getElementById('luckyWinnerMessage').textContent = "Eyes on the stage—good luck everyone!";
 
             const winningTeacher = eligible[Math.floor(Math.random() * eligible.length)];
             let step = 0;
-            const totalSteps = Math.max(24, eligible.length * 2 + 10);
+            const totalSteps = Math.max(28, eligible.length * 2 + 12);
 
             function runStep() {
                 const candidate = step >= totalSteps
@@ -1898,17 +1960,17 @@
                 if (step < totalSteps) {
                     step++;
                     const progress = step / totalSteps;
-                    const delay = 55 + Math.pow(progress, 2.4) * 280;
+                    const delay = 48 + Math.pow(progress, 2.5) * 310;
                     setTimeout(runStep, delay);
                 } else {
-                    finalizeLuckyWinner(winningTeacher);
+                    finalizeLuckyWinner(winningTeacher, prizeName);
                 }
             }
 
             runStep();
         };
 
-        function finalizeLuckyWinner(winner) {
+        function finalizeLuckyWinner(winner, prizeName) {
             appState.isSpinning = false;
             const spinBtn = document.getElementById('spinDrawBtn');
             spinBtn.disabled = false;
@@ -1921,15 +1983,18 @@
             appState.luckyHistory.unshift({
                 name: winner.name,
                 avatar: winner.avatar,
+                prize: prizeName || 'Lucky Prize',
                 round: appState.luckyHistory.length + 1
             });
 
-            document.getElementById('luckyStatusSubtitle').textContent = "🎉 CONGRATULATIONS LUCKY WINNER! 🎉";
-            document.getElementById('luckySpotlightName').textContent = `🏆 ${winner.name} 🏆`;
-            document.getElementById('luckyWinnerMessage').textContent = "Step up to claim your Thanksgiving Lucky Draw treat!";
+            document.getElementById('luckyStatusSubtitle').textContent = "✨🎉 GRAND LUCKY WINNER 🎉✨";
+            document.getElementById('luckySpotlightName').textContent = `👑 ${winner.name} 👑`;
+            document.getElementById('luckyWinnerMessage').textContent = prizeName
+                ? `Congratulations! Step up to claim: ${prizeName}! 🎁`
+                : "Congratulations! Step up to claim your special Thanksgiving prize! 🎁";
 
             AudioEngine.playFanfare();
-            triggerAutumnConfetti();
+            triggerFireworks();
             renderLuckyDrawGrid(winner.id);
             renderLuckyHistory();
         }
@@ -1937,17 +2002,20 @@
         function renderLuckyHistory() {
             const list = document.getElementById('luckyWinnersHistoryList');
             if (appState.luckyHistory.length === 0) {
-                list.innerHTML = `<div class="text-center py-12 text-amber-900/50 text-sm font-medium">No lucky winners drawn yet.<br>Spin the draw to award prizes! 🥧</div>`;
+                list.innerHTML = `<div class="text-center py-12 text-amber-900/50 text-sm font-medium">No lucky winners drawn yet.<br>Spin the spotlight to crown a winner! ✨</div>`;
                 return;
             }
             list.innerHTML = appState.luckyHistory.map(item => `
-                <div class="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 animate-pop-in">
-                    <div class="flex items-center gap-2.5">
-                        <span class="w-7 h-7 rounded-full bg-orange-600 text-white text-xs font-extrabold flex items-center justify-center">#${item.round}</span>
-                        <span class="text-xl">${item.avatar}</span>
-                        <span class="font-bold text-autumn-espresso text-sm">${escapeHtml(item.name)}</span>
+                <div class="flex items-center justify-between gap-2 p-3 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 animate-pop-in">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white text-xs font-extrabold flex items-center justify-center shrink-0">#${item.round}</span>
+                        <span class="text-xl shrink-0">${item.avatar}</span>
+                        <div class="min-w-0">
+                            <span class="font-bold text-autumn-espresso text-sm block truncate">${escapeHtml(item.name)}</span>
+                            <span class="text-[11px] font-bold text-orange-700 block truncate">🎁 ${escapeHtml(item.prize)}</span>
+                        </div>
                     </div>
-                    <span class="text-xs font-extrabold text-amber-700">🎁 Winner</span>
+                    <span class="text-base shrink-0">👑</span>
                 </div>
             `).join('');
         }
@@ -1955,15 +2023,15 @@
         window.resetLuckyDrawPool = function() {
             appState.drawnWinnerIds = [];
             appState.luckyHistory = [];
-            document.getElementById('luckyStatusSubtitle').textContent = "Pool Reset! Ready to spin again!";
-            document.getElementById('luckySpotlightName').textContent = "🦃 Who’s Next? 🦃";
+            document.getElementById('luckyStatusSubtitle').textContent = "✨ Pool Reset · Ready to Spin Again ✨";
+            document.getElementById('luckySpotlightName').textContent = "👑 Who’s Our Winner? 👑";
             document.getElementById('luckyWinnerMessage').textContent = "All attending teachers are back in the draw pool.";
             renderLuckyDrawGrid();
             renderLuckyHistory();
             showToast("Lucky Draw pool reset!", "↺");
         };
 
-        // --- 11. GRAND FINALE: TALLY BALLOTS & REVEAL TOP 5 ---
+        // --- 11. GRAND FINALE: TOP 5 REVEAL WITH DRUMROLL & HIDE-BACK UNDO ---
         function computeTalliedTeachers() {
             const teachers = (appState.sessionData.teachers && appState.sessionData.teachers.length > 0)
                 ? appState.sessionData.teachers
@@ -2016,6 +2084,13 @@
             renderFullStandings();
         }
 
+        function getNextUnrevealedRank(maxRanks) {
+            for (let r = maxRanks; r >= 1; r--) {
+                if (!appState.revealedRanks.has(r)) return r;
+            }
+            return null;
+        }
+
         function renderTop5Stage() {
             const sorted = computeTalliedTeachers();
             const top5 = sorted.slice(0, 5);
@@ -2028,11 +2103,11 @@
                 const tiedNames = sorted.filter(t => t.votes === fifthVotes).map(t => t.name).join(', ');
                 tieNote.innerHTML = `<span class="text-amber-300 font-bold">⚡ Tie Alert at ${fifthVotes} vote(s):</span> ${escapeHtml(tiedNames)} are tied for the 5th prize spot!`;
             } else {
-                tieNote.textContent = "* Rankings are ordered by total peer appreciation votes received.";
+                tieNote.textContent = "* Tip: Click any locked box to reveal it directly, or click 🙈 on any card to hide it back!";
             }
 
             const podiumOrderIndices = [3, 1, 0, 2, 4];
-            const heights = ["lg:min-h-[260px]", "lg:min-h-[300px]", "lg:min-h-[355px]", "lg:min-h-[280px]", "lg:min-h-[240px]"];
+            const heights = ["lg:min-h-[265px]", "lg:min-h-[305px]", "lg:min-h-[365px]", "lg:min-h-[285px]", "lg:min-h-[245px]"];
             const styles = ["podium-45", "podium-2", "podium-1", "podium-3", "podium-45"];
             const medals = ["🏅", "🥈", "👑", "🥉", "🏅"];
             const maxRanks = Math.min(5, top5.length);
@@ -2041,40 +2116,47 @@
                 const teacher = top5[rankIdx];
                 if (!teacher) return '';
                 const rankNumber = rankIdx + 1;
-                const isRevealed = appState.revealedRankStep >= (maxRanks + 1 - rankNumber);
+                const isRevealed = appState.revealedRanks.has(rankNumber);
 
                 if (!isRevealed) {
                     return `
-                        <div class="rounded-3xl bg-white/10 border-2 border-dashed border-amber-300/30 p-5 flex flex-col items-center justify-center text-center min-h-[210px] ${heights[visualPos]} transition-all">
-                            <span class="text-3xl mb-2 opacity-60">🎁</span>
-                            <span class="font-display text-2xl font-bold text-amber-200/70">#${rankNumber}</span>
-                            <span class="text-xs uppercase tracking-widest text-amber-300/50 font-bold mt-1">Locked Prize</span>
-                        </div>
+                        <button type="button" onclick="revealSpecificRank(${rankNumber})"
+                            class="w-full rounded-3xl bg-white/10 hover:bg-white/15 border-2 border-dashed border-amber-300/40 hover:border-amber-300 p-5 flex flex-col items-center justify-center text-center min-h-[215px] ${heights[visualPos]} transition-all group cursor-pointer">
+                            <span class="text-4xl mb-2 group-hover:scale-110 transition-transform">🎁</span>
+                            <span class="font-display text-2xl font-bold text-amber-200">#${rankNumber}</span>
+                            <span class="text-xs uppercase tracking-widest text-amber-300/70 font-bold mt-1">Click to Reveal</span>
+                        </button>
                     `;
                 }
 
                 return `
-                    <div class="rounded-3xl ${styles[visualPos]} text-autumn-espresso p-5 shadow-2xl border-2 border-white/70 flex flex-col items-center justify-between text-center min-h-[220px] ${heights[visualPos]} animate-pop-in">
+                    <div class="rounded-3xl ${styles[visualPos]} text-autumn-espresso p-5 shadow-2xl border-2 border-white/80 flex flex-col items-center justify-between text-center min-h-[225px] ${heights[visualPos]} animate-pop-in relative">
                         <div class="w-full flex items-center justify-between">
                             <span class="px-2.5 py-0.5 rounded-full bg-black/15 text-xs font-extrabold">#${rankNumber}</span>
-                            <span class="text-2xl">${medals[visualPos]}</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-2xl">${medals[visualPos]}</span>
+                                <button type="button" onclick="hideSpecificRank(${rankNumber})" title="Hide #${rankNumber} back into box"
+                                    class="w-7 h-7 rounded-full bg-black/15 hover:bg-black/30 text-autumn-espresso flex items-center justify-center text-xs transition-colors">
+                                    🙈
+                                </button>
+                            </div>
                         </div>
 
                         <div class="my-2">
-                            <div class="w-16 h-16 mx-auto rounded-2xl bg-white/85 shadow-md flex items-center justify-center text-4xl mb-2">
+                            <div class="w-16 h-16 mx-auto rounded-2xl bg-white/90 shadow-md flex items-center justify-center text-4xl mb-2">
                                 ${teacher.avatar}
                             </div>
                             <h3 class="font-display text-xl sm:text-2xl font-bold leading-tight break-words">
                                 ${escapeHtml(teacher.name)}
                             </h3>
                             ${teacher.topSticker ? `
-                                <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded-full bg-white/65 text-[11px] font-extrabold text-autumn-espresso">
+                                <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded-full bg-white/70 text-[11px] font-extrabold text-autumn-espresso">
                                     ${escapeHtml(teacher.topSticker)}
                                 </span>
                             ` : ''}
                         </div>
 
-                        <div class="w-full bg-white/80 backdrop-blur-sm rounded-2xl py-2 px-3 shadow-inner">
+                        <div class="w-full bg-white/85 backdrop-blur-sm rounded-2xl py-2 px-3 shadow-inner">
                             <span class="font-display text-xl font-extrabold text-rose-800">${teacher.votes}</span>
                             <span class="text-xs font-bold text-autumn-espresso/80 block">Appreciation Votes ❤️</span>
                         </div>
@@ -2084,41 +2166,112 @@
 
             const btnText = document.getElementById('revealNextBtnText');
             const fullStandingsBtn = document.getElementById('toggleFullStandingsBtn');
+            const nextRank = getNextUnrevealedRank(maxRanks);
 
-            if (maxRanks === 0 || appState.revealedRankStep >= maxRanks) {
+            if (maxRanks === 0 || nextRank === null) {
                 btnText.textContent = `All ${maxRanks} Winners Revealed! 🎉`;
                 fullStandingsBtn.classList.remove('hidden');
+            } else if (nextRank === 1) {
+                btnText.textContent = `👑 Reveal #1 Grand Winner!`;
             } else {
-                const nextRankToReveal = maxRanks - appState.revealedRankStep;
-                btnText.textContent = `Reveal #${nextRankToReveal} Winner`;
+                btnText.textContent = `Reveal #${nextRank} Winner`;
             }
+        }
+
+        function performDramaticReveal(rankNumber) {
+            if (appState.isRevealing) return;
+            appState.isRevealing = true;
+
+            const banner = document.getElementById('finaleDrumrollBanner');
+            const textEl = document.getElementById('finaleDrumrollText');
+            const isGrandWinner = rankNumber === 1;
+
+            textEl.textContent = isGrandWinner
+                ? "🥁👑 DRUMROLL PLEASE... OUR #1 GRAND WINNER IS... 👑🥁"
+                : `🥁 Drumroll please... Revealing #${rankNumber} Winner! 🥁`;
+            banner.classList.remove('hidden');
+
+            const duration = isGrandWinner ? 1150 : 750;
+            AudioEngine.playDrumroll(duration);
+
+            setTimeout(() => {
+                banner.classList.add('hidden');
+                appState.revealedRanks.add(rankNumber);
+                appState.revealHistoryOrder = appState.revealHistoryOrder.filter(r => r !== rankNumber);
+                appState.revealHistoryOrder.push(rankNumber);
+                appState.isRevealing = false;
+
+                AudioEngine.playFanfare();
+                if (isGrandWinner) {
+                    triggerFireworks();
+                } else {
+                    triggerAutumnConfetti();
+                }
+                renderTop5Stage();
+            }, duration);
         }
 
         window.revealNextRank = function() {
             const maxRanks = Math.min(5, computeTalliedTeachers().length);
-            if (appState.revealedRankStep >= maxRanks) {
-                triggerAutumnConfetti();
+            const nextRank = getNextUnrevealedRank(maxRanks);
+            if (nextRank === null) {
+                triggerFireworks();
                 AudioEngine.playFanfare();
                 return;
             }
-            appState.revealedRankStep += 1;
-            AudioEngine.playFanfare();
-            triggerAutumnConfetti();
+            performDramaticReveal(nextRank);
+        };
+
+        window.revealSpecificRank = function(rankNumber) {
+            if (appState.revealedRanks.has(rankNumber)) return;
+            performDramaticReveal(rankNumber);
+        };
+
+        window.hideSpecificRank = function(rankNumber) {
+            appState.revealedRanks.delete(rankNumber);
+            appState.revealHistoryOrder = appState.revealHistoryOrder.filter(r => r !== rankNumber);
+            AudioEngine.playDeselect();
             renderTop5Stage();
+            showToast(`Hid #${rankNumber} winner back into the mystery box!`, "🙈");
+        };
+
+        window.hideLastRevealed = function() {
+            if (appState.revealHistoryOrder.length === 0) {
+                showToast("Nothing is revealed yet!", "🙈");
+                return;
+            }
+            const lastRank = appState.revealHistoryOrder.pop();
+            appState.revealedRanks.delete(lastRank);
+            AudioEngine.playDeselect();
+            renderTop5Stage();
+            showToast(`Hid #${lastRank} winner back into the mystery box!`, "↩️");
+        };
+
+        window.hideAllWinners = function() {
+            appState.revealedRanks.clear();
+            appState.revealHistoryOrder = [];
+            document.getElementById('fullStandingsBox').classList.add('hidden');
+            document.getElementById('toggleFullStandingsBtn').classList.add('hidden');
+            AudioEngine.playDeselect();
+            renderTop5Stage();
+            showToast("All winners hidden back into mystery boxes!", "🙈");
         };
 
         window.revealAllWinners = function() {
-            appState.revealedRankStep = Math.min(5, computeTalliedTeachers().length);
+            const maxRanks = Math.min(5, computeTalliedTeachers().length);
+            appState.revealHistoryOrder = [];
+            for (let r = maxRanks; r >= 1; r--) {
+                appState.revealedRanks.add(r);
+                appState.revealHistoryOrder.push(r);
+            }
             AudioEngine.playFanfare();
-            triggerAutumnConfetti();
+            triggerFireworks();
             renderTop5Stage();
         };
 
-        window.revealAllWinners = function() {
-            appState.revealedRankStep = 5;
-            AudioEngine.playFanfare();
-            triggerAutumnConfetti();
-            renderTop5Stage();
+        window.playHypeDrumroll = function() {
+            AudioEngine.playDrumroll(1000);
+            showToast("🥁 Drumroll! Build the hype!", "🥁");
         };
 
         window.toggleFullStandings = function() {
@@ -2142,7 +2295,7 @@
             `).join('');
         }
 
-        // --- 12. UTILITIES ---
+        // --- 12. UTILITIES & CONFETTI ---
         window.toggleSound = function() {
             appState.soundEnabled = !appState.soundEnabled;
             document.getElementById('soundIcon').textContent = appState.soundEnabled ? '🔊' : '🔇';
@@ -2158,6 +2311,16 @@
                 colors: ['#F59E0B', '#EA580C', '#9F1239', '#FDE68A', '#15803D']
             });
         }
+
+        window.triggerFireworks = function() {
+            if (typeof confetti !== 'function') return;
+            const colors = ['#FDE68A', '#F59E0B', '#EA580C', '#E11D48', '#FFFFFF'];
+            confetti({ particleCount: 70, angle: 60, spread: 65, origin: { x: 0.1, y: 0.65 }, colors });
+            confetti({ particleCount: 70, angle: 120, spread: 65, origin: { x: 0.9, y: 0.65 }, colors });
+            setTimeout(() => {
+                confetti({ particleCount: 90, spread: 95, origin: { x: 0.5, y: 0.55 }, colors });
+            }, 220);
+        };
 
         let toastTimeout = null;
         window.showToast = function(message, icon = "🍂") {
