@@ -340,7 +340,7 @@
                     <div class="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-amber-100">
                         <div class="text-xs sm:text-sm text-amber-900/80 font-medium space-y-0.5">
                             <p>🔒 <strong>Spoiler-Free Guarantee:</strong> Individual vote counts stay 100% hidden until the Finale.</p>
-                            <p>📱 <strong>Phone Voting:</strong> Each teacher picks 2 different peers + optional appreciation badge.</p>
+                            <p>📱 <strong>Phone Voting:</strong> Each teacher picks 2 different peers anonymously.</p>
                         </div>
                         <button onclick="launchLiveEvent()" id="launchEventBtn" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-orange-600 to-rose-700 hover:from-orange-500 hover:to-rose-600 active:scale-95 text-white font-display text-lg sm:text-xl font-bold shadow-lg shadow-orange-600/30 transition-all flex items-center justify-center gap-2.5 animate-pulse-glow shrink-0">
                             <span>📱</span>
@@ -709,10 +709,10 @@
                         <span class="text-xs font-bold text-orange-700">Pick 2 Different Peers</span>
                     </div>
                     <h2 class="font-display text-2xl font-bold text-autumn-espresso leading-snug">
-                        Who are you thankful for today? 🧡
+                        Who are you thankful for at New World English? 🧡
                     </h2>
                     <p class="text-xs text-amber-900/75 font-medium">
-                        Tap <strong>2 different teachers</strong> below, optionally add a quick appreciation badge, and send!
+                        Tap <strong>2 different teachers</strong> below and send your anonymous vote!
                     </p>
 
                     <!-- Quick Search Filter -->
@@ -720,19 +720,6 @@
                         <input type="text" id="phoneSearchInput" oninput="renderPhoneTeacherList()" placeholder="🔍 Search teacher name..."
                             class="w-full pl-3.5 pr-8 py-2.5 rounded-xl border-2 border-amber-200 bg-amber-50/50 text-sm font-semibold focus:outline-none focus:border-orange-500">
                         <button onclick="document.getElementById('phoneSearchInput').value=''; renderPhoneTeacherList();" class="absolute right-3 top-3.5 text-amber-800/50 hover:text-amber-900 text-xs font-bold">✕</button>
-                    </div>
-                </div>
-
-                <!-- Optional Anonymous Thanksgiving Sticker / Badge Picker -->
-                <div class="bg-white rounded-3xl p-4 shadow-sm border border-amber-200 space-y-2.5">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-extrabold uppercase tracking-wider text-amber-900">
-                            Optional Appreciation Vibe Badge
-                        </span>
-                        <span class="text-[11px] text-stone-400 font-semibold">Anonymous</span>
-                    </div>
-                    <div id="stickerPickerRow" class="flex flex-wrap gap-1.5">
-                        <!-- Rendered via JS -->
                     </div>
                 </div>
 
@@ -885,13 +872,6 @@
             "Rachel", "Daniel", "Olivia", "Mr. Thompson"
         ];
         const AVATAR_EMOJIS = ["🦉", "🦊", "🐻", "🦔", "🐿️", "🦌", "🦃", "🌻", "🍁", "🍎", "🥧", "🧣", "☕", "🌟", "🐝", "🦋"];
-        const VIBE_STICKERS = [
-            "Always Helpful 🌟",
-            "Best Energy 🔥",
-            "Super Kind 💛",
-            "Team Lifesaver 🦸",
-            "Pure Joy 🌻"
-        ];
 
         const urlParams = new URLSearchParams(window.location.search);
         const paramSessionId = urlParams.get('session');
@@ -919,11 +899,9 @@
             currentHostScreen: 'setup',
             // Built-in phone preview/kiosk modal state
             previewSelectedIds: [],
-            previewSticker: VIBE_STICKERS[0],
             previewVoted: false,
             // Voter phone local state
             selectedIds: [],
-            selectedSticker: VIBE_STICKERS[0],
             votedSessions: new Set(),
             hasVotedLocally: false
         };
@@ -995,18 +973,32 @@
         };
 
         // --- 4. HELPER FUNCTIONS & FIRESTORE REFERENCES ---
-        function generateSessionCode() {
-            const num = Math.floor(1000 + Math.random() * 9000);
-            return `THANKS-${num}`;
-        }
-
         function escapeHtml(str) {
-            return String(str)
+            return String(str ?? '')
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        function generateSessionCode() {
+            const num = Math.floor(1000 + Math.random() * 9000);
+            return `THANKS-${num}`;
+        }
+
+        function secureRandomFloat() {
+            if (window.crypto && window.crypto.getRandomValues) {
+                const arr = new Uint32Array(1);
+                window.crypto.getRandomValues(arr);
+                return arr[0] / 4294967296;
+            }
+            return Math.random();
+        }
+
+        function secureRandomInt(max) {
+            if (max <= 0) return 0;
+            return Math.floor(secureRandomFloat() * max);
         }
 
         function makeTeacherObj(name, index) {
@@ -1072,7 +1064,6 @@
                 document.getElementById('modeBadge').textContent = 'Voter Phone View';
                 document.getElementById('modeBadge').className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
                 appState.hasVotedLocally = appState.votedSessions.has(appState.sessionId);
-                renderStickerPicker();
             }
 
             subscribeToLiveSession();
@@ -1490,7 +1481,7 @@
                     feedEl.innerHTML = recent.map((b, i) => `
                         <div class="flex items-center justify-between bg-white px-3 py-1.5 rounded-lg border border-stone-200 animate-pop-in">
                             <span>💌 Anonymous Ballot #${totalBallots - i} locked in</span>
-                            <span class="text-[11px] font-bold text-orange-700">${escapeHtml(b.sticker || '🧡 Gratitude')}</span>
+                            <span class="text-[11px] font-bold text-orange-700">🧡 Gratitude</span>
                         </div>
                     `).join('');
                 }
@@ -1533,7 +1524,6 @@
         // --- 8. HOST TEST PHONE PREVIEW / KIOSK MODAL & JOIN BY CODE ---
         window.openPhonePreviewModal = function() {
             appState.previewSelectedIds = [];
-            appState.previewSticker = VIBE_STICKERS[0];
             appState.previewVoted = false;
             document.getElementById('modalSessionId').textContent = appState.sessionId;
             document.getElementById('phonePreviewModal').classList.remove('hidden');
@@ -1577,17 +1567,14 @@
             const twoSelected = appState.previewSelectedIds.length >= 2;
 
             body.innerHTML = `
-                <div class="bg-white rounded-2xl p-3.5 border border-amber-200 space-y-2">
+                <div class="bg-white rounded-2xl p-3.5 border border-amber-200 space-y-1.5">
                     <div class="flex items-center justify-between">
                         <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-extrabold uppercase">🔒 100% Anonymous</span>
                         <span class="text-[11px] font-bold text-orange-700">Pick 2 Different Peers</span>
                     </div>
-                    <div class="flex flex-wrap gap-1.5 pt-1">
-                        ${VIBE_STICKERS.map(st => {
-                            const active = appState.previewSticker === st;
-                            return `<button type="button" onclick="selectPreviewSticker('${escapeHtml(st)}')" class="px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all ${active ? 'bg-orange-600 text-white border-orange-600' : 'bg-amber-50 text-amber-950 border-amber-200'}">${escapeHtml(st)}</button>`;
-                        }).join('')}
-                    </div>
+                    <h4 class="font-display text-lg font-bold text-autumn-espresso leading-snug">
+                        Who are you thankful for at New World English? 🧡
+                    </h4>
                 </div>
                 <div class="grid grid-cols-2 gap-2.5">
                     ${teachers.map(t => {
@@ -1630,12 +1617,6 @@
             }
         }
 
-        window.selectPreviewSticker = function(sticker) {
-            appState.previewSticker = sticker;
-            AudioEngine.playSelect();
-            renderPreviewModalContent();
-        };
-
         window.togglePreviewTeacherPick = function(id) {
             const idx = appState.previewSelectedIds.indexOf(id);
             if (idx !== -1) {
@@ -1660,8 +1641,7 @@
             document.getElementById('previewSubmitBtnText').textContent = 'Sending...';
 
             const ballotPayload = {
-                choices: [appState.previewSelectedIds[0], appState.previewSelectedIds[1]],
-                sticker: appState.previewSticker
+                choices: [appState.previewSelectedIds[0], appState.previewSelectedIds[1]]
             };
 
             try {
@@ -1731,31 +1711,11 @@
             document.getElementById('testPhoneBtn').classList.add('hidden');
             document.getElementById('editRosterBtn').classList.add('hidden');
 
-            renderStickerPicker();
             subscribeToLiveSession();
             showToast(`Joined room ${code}!`, "🔑");
         };
 
         // --- 9. VOTER PHONE MODE ---
-        function renderStickerPicker() {
-            const row = document.getElementById('stickerPickerRow');
-            row.innerHTML = VIBE_STICKERS.map(sticker => {
-                const isSelected = appState.selectedSticker === sticker;
-                return `
-                    <button type="button" onclick="selectVibeSticker('${escapeHtml(sticker)}')"
-                        class="px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${isSelected ? 'bg-orange-600 text-white border-orange-600 shadow-sm' : 'bg-amber-50 text-amber-950 border-amber-200 hover:bg-amber-100'}">
-                        ${escapeHtml(sticker)}
-                    </button>
-                `;
-            }).join('');
-        }
-
-        window.selectVibeSticker = function(sticker) {
-            appState.selectedSticker = sticker;
-            AudioEngine.playSelect();
-            renderStickerPicker();
-        };
-
         function updateVoterScreenState() {
             document.getElementById('voter-phone-view').classList.remove('hidden');
             ['waiting', 'closed', 'submitted', 'ballot'].forEach(st => {
@@ -1877,7 +1837,6 @@
                 if (useCloudSync && appState.user) {
                     await addDoc(getBallotsColRef(), {
                         choices: [appState.selectedIds[0], appState.selectedIds[1]],
-                        sticker: appState.selectedSticker,
                         createdAt: serverTimestamp()
                     });
                 }
@@ -1938,20 +1897,46 @@
             spinBtn.disabled = true;
             spinBtn.classList.add('opacity-60');
 
-            const prizeName = (document.getElementById('luckyPrizeInput')?.value || '').trim();
-            document.getElementById('luckyStatusSubtitle').textContent = prizeName
-                ? `🥁 SPINNING FOR: ${prizeName.toUpperCase()} 🥁`
-                : "🥁 DRUMROLL PLEASE · SPINNING THE GOLDEN SPOTLIGHT 🥁";
-            document.getElementById('luckyWinnerMessage').textContent = "Eyes on the stage—good luck everyone!";
+            const prizeInput = document.getElementById('luckyPrizeInput');
+            const prizeName = prizeInput ? prizeInput.value.trim() : '';
 
-            const winningTeacher = eligible[Math.floor(Math.random() * eligible.length)];
+            document.getElementById('luckyStatusSubtitle').textContent = prizeName
+                ? `✨ Drawing for: ${prizeName}... ✨`
+                : "✨ Spotlight Jumping... Good Luck! ✨";
+            document.getElementById('luckyWinnerMessage').textContent = "Drumroll please... who will the spotlight land on?";
+
+            // Cryptographically uniform random winner
+            const winningIndex = secureRandomInt(eligible.length);
+            const winningTeacher = eligible[winningIndex];
+
+            // Snappy random-jump sequence (16 to 24 hops, ~2.3–3.2s total) with smooth deceleration
+            const totalSteps = eligible.length === 1 ? 6 : (16 + secureRandomInt(9));
+            const startDelay = 45 + secureRandomFloat() * 20;   // 45–65ms initial bounce
+            const endDelay = 300 + secureRandomFloat() * 140;   // 300–440ms smooth slow-down at the end
+            const curvePower = 2.4 + secureRandomFloat() * 1.1; // Natural ease-out curve
             let step = 0;
-            const totalSteps = Math.max(28, eligible.length * 2 + 12);
+            let lastIndex = -1;
 
             function runStep() {
-                const candidate = step >= totalSteps
-                    ? winningTeacher
-                    : eligible[Math.floor(Math.random() * eligible.length)];
+                let currentIndex;
+                if (step === totalSteps) {
+                    // Land smoothly on the pre-selected random winner on the final slow beat
+                    currentIndex = winningIndex;
+                } else if (eligible.length === 1) {
+                    currentIndex = 0;
+                } else {
+                    // Jump randomly anywhere in the grid without repeating the same tile twice in a row
+                    // On the second-to-last hop, avoid landing on the winner early so the final beat lands cleanly
+                    do {
+                        currentIndex = secureRandomInt(eligible.length);
+                    } while (
+                        currentIndex === lastIndex ||
+                        (step === totalSteps - 1 && eligible.length > 2 && currentIndex === winningIndex)
+                    );
+                }
+
+                lastIndex = currentIndex;
+                const candidate = eligible[currentIndex];
 
                 renderLuckyDrawGrid(candidate.id);
                 document.getElementById('luckySpotlightName').textContent = `${candidate.avatar} ${candidate.name}`;
@@ -1960,10 +1945,13 @@
                 if (step < totalSteps) {
                     step++;
                     const progress = step / totalSteps;
-                    const delay = 48 + Math.pow(progress, 2.5) * 310;
+                    const delay = startDelay + Math.pow(progress, curvePower) * endDelay;
                     setTimeout(runStep, delay);
                 } else {
-                    finalizeLuckyWinner(winningTeacher, prizeName);
+                    // Short natural beat before crowning the winner
+                    setTimeout(() => {
+                        finalizeLuckyWinner(winningTeacher, prizeName);
+                    }, 220);
                 }
             }
 
@@ -2037,11 +2025,9 @@
                 ? appState.sessionData.teachers
                 : appState.draftTeachers;
             const tallyMap = {};
-            const stickerMap = {};
 
             teachers.forEach(t => {
                 tallyMap[t.id] = 0;
-                stickerMap[t.id] = [];
             });
 
             appState.ballots.forEach(b => {
@@ -2049,30 +2035,15 @@
                     b.choices.forEach(choiceId => {
                         if (tallyMap[choiceId] !== undefined) {
                             tallyMap[choiceId] += 1;
-                            if (b.sticker) stickerMap[choiceId].push(b.sticker);
                         }
                     });
                 }
             });
 
-            return teachers.map(t => {
-                const counts = {};
-                let topSticker = '';
-                let maxS = 0;
-                (stickerMap[t.id] || []).forEach(s => {
-                    counts[s] = (counts[s] || 0) + 1;
-                    if (counts[s] > maxS) {
-                        maxS = counts[s];
-                        topSticker = s;
-                    }
-                });
-
-                return {
-                    ...t,
-                    votes: tallyMap[t.id] || 0,
-                    topSticker
-                };
-            }).sort((a, b) => {
+            return teachers.map(t => ({
+                ...t,
+                votes: tallyMap[t.id] || 0
+            })).sort((a, b) => {
                 if (b.votes !== a.votes) return b.votes - a.votes;
                 return a.name.localeCompare(b.name);
             });
@@ -2106,10 +2077,10 @@
                 tieNote.textContent = "* Tip: Click any locked box to reveal it directly, or click 🙈 on any card to hide it back!";
             }
 
-            const podiumOrderIndices = [3, 1, 0, 2, 4];
-            const heights = ["lg:min-h-[265px]", "lg:min-h-[305px]", "lg:min-h-[365px]", "lg:min-h-[285px]", "lg:min-h-[245px]"];
-            const styles = ["podium-45", "podium-2", "podium-1", "podium-3", "podium-45"];
-            const medals = ["🏅", "🥈", "👑", "🥉", "🏅"];
+            const podiumOrderIndices = [0, 1, 2, 3, 4];
+            const heights = ["lg:min-h-[365px]", "lg:min-h-[325px]", "lg:min-h-[290px]", "lg:min-h-[260px]", "lg:min-h-[235px]"];
+            const styles = ["podium-1", "podium-2", "podium-3", "podium-45", "podium-45"];
+            const medals = ["👑", "🥈", "🥉", "🏅", "🏅"];
             const maxRanks = Math.min(5, top5.length);
 
             stage.innerHTML = podiumOrderIndices.map((rankIdx, visualPos) => {
@@ -2149,11 +2120,6 @@
                             <h3 class="font-display text-xl sm:text-2xl font-bold leading-tight break-words">
                                 ${escapeHtml(teacher.name)}
                             </h3>
-                            ${teacher.topSticker ? `
-                                <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded-full bg-white/70 text-[11px] font-extrabold text-autumn-espresso">
-                                    ${escapeHtml(teacher.topSticker)}
-                                </span>
-                            ` : ''}
                         </div>
 
                         <div class="w-full bg-white/85 backdrop-blur-sm rounded-2xl py-2 px-3 shadow-inner">
